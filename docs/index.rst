@@ -17,9 +17,10 @@ eigenstates from `Xatu`_. It evaluates:
 Each response comes as a single-particle result and, when Xatu excitons are supplied, as an excitonic
 result too. That lets you see directly how the electron–hole interaction reshapes the spectrum.
 
-.. note::
+.. admonition:: Reference paper
+   :class: tip
 
-   📄 **Reference paper** (citation required when using the code):
+   Citation required when using the code:
    J. J. Esteve-Paredes, M. A. García-Blázquez, A. J. Uría-Álvarez, M. Camarasa-Gómez and J. J. Palacios,
    `Excitons in nonlinear optical responses: shift current in MoS2 and GeS monolayers,
    npj Computational Materials 11, 13 (2025) <https://doi.org/10.1038/s41524-024-01504-2>`_
@@ -46,11 +47,50 @@ Computing the optical matrix elements is usually the expensive step. They are st
 compute them once and then reuse them for different frequency windows or broadenings (see
 :doc:`workflows`).
 
-Documentation contents
-======================
+Where to start
+==============
+
+.. grid:: 1 2 2 2
+   :gutter: 3
+
+   .. grid-item-card:: :octicon:`download` Installation
+      :link: installation
+      :link-type: doc
+
+      Compiler, OpenBLAS or MKL, and building ``opticx`` on Linux and macOS.
+
+   .. grid-item-card:: :octicon:`rocket` Quick start
+      :link: quickstart
+      :link-type: doc
+
+      Absorbance and shift current of GeS, and an excitonic calculation for hBN with Xatu.
+
+   .. grid-item-card:: :octicon:`file-code` Input file
+      :link: input_file
+      :link-type: doc
+
+      Every keyword, its allowed values and defaults.
+
+   .. grid-item-card:: :octicon:`workflow` Workflows
+      :link: workflows
+      :link-type: doc
+
+      Splitting runs, reusing matrix elements and caching excitonic ones.
+
+   .. grid-item-card:: :octicon:`file` Output files
+      :link: outputs/overview
+      :link-type: doc
+
+      What each file contains, its columns and units.
+
+   .. grid-item-card:: :octicon:`book` Theory and conventions
+      :link: theory/conventions
+      :link-type: doc
+
+      Units, broadening, frequency grid, and the formulas behind each response.
 
 .. toctree::
-   :maxdepth: 1
+   :hidden:
    :caption: Getting started
 
    installation
@@ -59,8 +99,8 @@ Documentation contents
    workflows
 
 .. toctree::
-   :maxdepth: 1
-   :caption: Outputs
+   :hidden:
+   :caption: Output files
 
    outputs/overview
    outputs/linear_conductivity
@@ -69,7 +109,7 @@ Documentation contents
    outputs/matrix_elements
 
 .. toctree::
-   :maxdepth: 1
+   :hidden:
    :caption: Theory and conventions
 
    theory/conventions
@@ -77,8 +117,8 @@ Documentation contents
    theory/shift_current
 
 .. toctree::
-   :maxdepth: 1
-   :caption: Help and miscellaneous
+   :hidden:
+   :caption: Help and reference
 
    troubleshooting
    misc/citing

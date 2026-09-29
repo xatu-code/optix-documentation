@@ -28,53 +28,48 @@ The repository layout is:
    ├── tests/                     # validation programs
    └── Makefile
 
-Ubuntu (22.04 LTS or newer) and WSL
-===================================
-
-Install the compiler and OpenBLAS:
-
-.. code-block:: bash
-
-   sudo apt-get install gfortran libopenblas-dev
-
-Then build:
-
-.. code-block:: bash
-
-   make
-
-This produces the executable ``bin/opticx``.
-
-macOS
+Build
 =====
 
-Install the dependencies with Homebrew. Use Homebrew's ``gcc`` rather than the system compiler:
+.. tab-set::
 
-.. code-block:: bash
+   .. tab-item:: Ubuntu / Debian / WSL
 
-   brew install gcc openblas
+      Install the compiler and OpenBLAS, then build:
 
-Then edit the compiler and library location at the top of the ``Makefile``:
+      .. code-block:: bash
 
-.. code-block:: make
+         sudo apt-get install gfortran libopenblas-dev
+         make
 
-   FC     = gfortran-13
-   LIBS   = -L/opt/homebrew/opt/openblas/lib -lopenblas -fopenmp -lgfortran
+   .. tab-item:: macOS (Homebrew)
 
-and run ``make``.
+      Install the dependencies with Homebrew, using its ``gcc`` rather than the system compiler:
 
-Intel MKL
-=========
+      .. code-block:: bash
 
-To link against MKL instead of OpenBLAS, pass ``USE_MKL=1``:
+         brew install gcc openblas
 
-.. code-block:: bash
+      Then set the compiler and library location at the top of the ``Makefile`` and run ``make``:
 
-   make USE_MKL=1
+      .. code-block:: make
 
-This assumes a system-wide MKL (for example ``sudo apt-get install intel-mkl``) and links
-``-lmkl_rt -fopenmp -lpthread -lm -ldl``. If MKL lives somewhere else, uncomment the ``MKLROOT`` and
-``LIBS`` lines in the MKL block of the ``Makefile`` and adjust the path.
+         FC     = gfortran-13
+         LIBS   = -L/opt/homebrew/opt/openblas/lib -lopenblas -fopenmp -lgfortran
+
+   .. tab-item:: Intel MKL
+
+      To link against MKL instead of OpenBLAS:
+
+      .. code-block:: bash
+
+         make USE_MKL=1
+
+      This assumes a system-wide MKL (e.g. ``sudo apt-get install intel-mkl``), linked with
+      ``-lmkl_rt -fopenmp -lpthread -lm -ldl``. If MKL is installed elsewhere, uncomment the ``MKLROOT``
+      and ``LIBS`` lines in the MKL block of the ``Makefile`` and adjust the path.
+
+The executable is ``bin/opticx``.
 
 Compiler flags
 ==============
