@@ -204,6 +204,17 @@ Besides the single-particle files from example 1, this run writes:
 The ``sp`` and ``ex`` files share the same format and frequency grid. Plotting them together shows the
 excitonic effects directly.
 
+Here is what a converged comparison looks like (absorbance computed from :math:`\mathrm{Re}\,\sigma^{aa}`,
+see :doc:`outputs/linear_conductivity`):
+
+.. figure:: images/paper_fig2_absorbance.jpg
+   :width: 55%
+   :align: center
+
+   Linear absorbance of monolayer MoS\ :sub:`2` (a) and monolayer GeS for armchair (b) and zigzag (c)
+   polarisation, in the IPA and with excitons (BSE).
+   Reproduced without modification from J. J. Esteve-Paredes *et al.*, `npj Comput. Mater. 11, 13 (2025) <https://doi.org/10.1038/s41524-024-01504-2>`_, under a `CC BY-NC-ND 4.0 <https://creativecommons.org/licenses/by-nc-nd/4.0/>`_ license.
+
 For the **excitonic shift current**, use ``nonlinear`` for both ``OME_sp`` and ``OME_ex``, and set
 ``Response`` to ``shift_shiftvector``. The result goes to ``shift_ex_lengthgauge_<material>.dat``, next
 to the single-particle ``shift_sp_lengthgauge_<material>.dat``. Excitonic second-order runs are much

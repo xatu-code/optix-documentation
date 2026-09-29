@@ -24,9 +24,13 @@ result too. That lets you see directly how the electron–hole interaction resha
    `Excitons in nonlinear optical responses: shift current in MoS2 and GeS monolayers,
    npj Computational Materials 11, 13 (2025) <https://doi.org/10.1038/s41524-024-01504-2>`_
 
-.. image:: images/ges_shift_sp.png
-   :width: 80%
+.. figure:: images/paper_fig4_ges_shift.jpg
+   :width: 60%
    :align: center
+
+   Shift conductivity of monolayer GeS computed with OptiX, in the independent-particle
+   approximation (IPA) and with excitons (BSE): (a) :math:`\sigma^{xxx}`, (b) :math:`\sigma^{xyy}`.
+   Reproduced without modification from J. J. Esteve-Paredes *et al.*, `npj Comput. Mater. 11, 13 (2025) <https://doi.org/10.1038/s41524-024-01504-2>`_, under a `CC BY-NC-ND 4.0 <https://creativecommons.org/licenses/by-nc-nd/4.0/>`_ license.
 
 How a calculation works
 =======================
