@@ -1,6 +1,6 @@
 .. OptiX documentation master file
 
-.. _Xatu: https://github.com/xatu-code/xatu
+.. _Xatu: https://xatu-documentation.readthedocs.io/en/latest/
 
 ==========================================================
 OptiX: linear and nonlinear optics of crystals
