@@ -36,7 +36,7 @@ conductivity, whose atomic unit is :math:`e^2/\hbar`:
    \approx \sigma\,[\text{a.u.}] \times 2.434\times10^{-4}\ \text{S}.
 
 For a 3D material, the atomic unit of conductivity is :math:`e^2/(\hbar a_0)`
-(≈ :math:`4.60\times10^{6}` S/m).
+(:math:`\approx 4.60\times10^{6}` S/m).
 
 What is computed
 ================
@@ -45,7 +45,7 @@ OptiX evaluates the **absorptive (resonant) part** of the Kubo conductivity: the
 :math:`\delta` function is replaced by the broadening function of :ref:`kw-broadening`. See
 :doc:`../theory/linear_response` for the formulas. As a consequence:
 
-* ``Re σ^{aa}`` (the diagonal of the ``_real`` file) is the absorption along direction :math:`a`. **This
+* :math:`\mathrm{Re}\,\sigma^{aa}` (the diagonal of the ``_real`` file) is the absorption along direction :math:`a`. **This
   is the quantity usually wanted.**
 * The ``_imag`` file is the imaginary part of the transition-strength tensor
   :math:`\propto v^a_{cv}v^b_{vc}`. It is antisymmetric (:math:`\sigma^{xy} = -\sigma^{yx}`), vanishes
@@ -55,7 +55,7 @@ OptiX evaluates the **absorptive (resonant) part** of the Kubo conductivity: the
 .. warning::
 
    ``sigma_first_*_imag`` is **not** the reactive (dispersive) part of :math:`\sigma^{aa}` related to
-   ``Re σ`` by Kramers–Kronig. To get that part, apply a Kramers–Kronig transform to
+   :math:`\mathrm{Re}\,\sigma` by Kramers–Kronig. To get that part, apply a Kramers–Kronig transform to
    :math:`\mathrm{Re}\,\sigma^{aa}(\omega)` yourself.
 
 No spin-degeneracy factor is applied. If your Wannier model has no explicit spin (one orbital per

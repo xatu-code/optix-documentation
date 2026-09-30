@@ -15,21 +15,21 @@ Units
    * - Quantity
      - Unit
    * - Wannier90 input (lattice, hoppings, positions)
-     - Å and eV (the Wannier90 defaults)
+     - Angstrom and eV (the Wannier90 defaults)
    * - Xatu input (k-points, exciton energies)
-     - Å⁻¹ and eV (the Xatu defaults)
+     - :math:`\text{Angstrom}^{-1}` and eV (the Xatu defaults)
    * - ``Energy_variables``
      - eV
    * - Internal calculations
-     - Hartree atomic units (:math:`e=\hbar=m_e=1`; 1 Ha = 27.211385 eV, 1 bohr = 0.529177 Å)
+     - Hartree atomic units (:math:`e=\hbar=m_e=1`; 1 Ha = 27.211385 eV, 1 bohr = 0.529177 Angstrom)
    * - Photon energy column in all spectra
      - eV
    * - Linear conductivity :math:`\sigma^{ab}`
      - atomic units (:math:`e^2/\hbar` for 2D sheets)
    * - Shift conductivity :math:`\sigma^{abc}`
-     - µA·nm/V² (2D sheet)
+     - :math:`\mu\text{A nm/V}^2` (2D sheet)
    * - Band structure
-     - k in bohr⁻¹, energies in eV
+     - k in :math:`\text{bohr}^{-1}`, energies in eV
    * - Matrix-element files
      - atomic units
 
@@ -86,13 +86,13 @@ Occupations and spin
 k-mesh
 ======
 
-The Brillouin zone is sampled with a Γ-centred Monkhorst–Pack mesh, identical to the one Xatu uses.
+The Brillouin zone is sampled with a :math:`\Gamma`-centred Monkhorst–Pack mesh, identical to the one Xatu uses.
 With ``N = Ncells``, along each reciprocal lattice vector the fractional coordinates are
 :math:`u = c/N - 1/2`, :math:`c = 0,\dots,N-1`. For odd :math:`N` they are shifted by :math:`1/(2N)`.
 The first reciprocal direction runs fastest.
 
 Derivatives with respect to :math:`\mathbf{k}` (needed for second-order responses) are taken by finite
-differences, with a step of :math:`10^{-6}` bohr⁻¹ for single-particle quantities. For the exciton
+differences, with a step of :math:`10^{-6}\,\text{bohr}^{-1}` for single-particle quantities. For the exciton
 envelopes they are taken on the mesh itself, with periodic wrap-around.
 
 Optical matrix elements

@@ -48,11 +48,11 @@ In Python, with :math:`x,y,z \to 0,1,2`:
 Units
 =====
 
-**µA·nm/V²**. This is the unit of a **2D sheet** second-order conductivity (current per unit width,
-A/m, divided by field squared, (V/m)²). The atomic-unit result is multiplied by
+**Units:** :math:`\mu\text{A nm/V}^2`. This is the unit of a **2D sheet** second-order conductivity (current per unit width,
+A/m, divided by field squared, :math:`(\text{V/m})^2`). The atomic-unit result is multiplied by
 :math:`6.623618\times10^{-3}\times10^{6}\,/\,27.211386^{2}\times a_0[\text{nm}]`.
 
-To compare with a bulk value in µA/V², divide by an effective layer thickness :math:`d` in nm:
+To compare with a bulk value in :math:`\mu\text{A/V}^2`, divide by an effective layer thickness :math:`d` in nm:
 :math:`\sigma_\text{3D} = \sigma_\text{2D}/d`. The value of :math:`d` is a convention, so state the
 one you use.
 

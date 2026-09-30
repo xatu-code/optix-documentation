@@ -53,7 +53,7 @@ Excitonic shift current
 =======================
 
 With excitons, the transitions go through exciton states :math:`|N\rangle`. The response involves the
-ground-state → exciton position elements :math:`X^a_N` and the exciton → exciton elements
+ground-state-to-exciton position elements :math:`X^a_N` and the exciton-to-exciton elements
 :math:`X^a_{NN'}`. The latter include the k-derivative of the exciton envelopes, and are built from the
 Xatu eigenvectors when ``OME_ex = nonlinear``. Schematically,
 

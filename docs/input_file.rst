@@ -160,7 +160,7 @@ Wannier90_filename
 The full path (absolute, or relative to the directory you run in) of a Wannier90 tight-binding file in
 the standard ``<seedname>_tb.dat`` format, as written by Wannier90 with ``write_tb = .true.``.
 That file holds the lattice vectors, the Hamiltonian :math:`H(\mathbf{R})` and the position matrix
-elements :math:`\mathbf{r}(\mathbf{R})`. The file is read in Å and eV.
+elements :math:`\mathbf{r}(\mathbf{R})`. The file is read in Angstrom and eV.
 
 The **material name** used to label every output file is the file name without its directory and without
 the ``_tb.dat`` suffix. For example, ``/data/GeS_wannier_04062024_tb.dat`` becomes
@@ -225,7 +225,7 @@ A space-separated list of integers selecting the bands that enter the optical tr
 
 Entries :math:`\le 0` are valence (occupied) bands; entries :math:`> 0` are conduction (empty) bands.
 Internally, entry :math:`j` refers to band number ``Nfermi + j`` of the Wannier Hamiltonian, counted
-from 1 at the bottom. Every entry must fall within 1 … (number of Wannier orbitals), or OptiX stops and
+from 1 at the bottom. Every entry must fall within 1 ... (number of Wannier orbitals), or OptiX stops and
 names the offending entry.
 
 Only transitions between the listed bands are included, so the spectrum is only meaningful up to the
@@ -249,14 +249,14 @@ Ncells
    # Ncells
    102
 
-Number of k-points **per periodic direction**. The Brillouin zone is sampled with a Γ-centred
-Monkhorst–Pack mesh of ``Ncells`` (1D), ``Ncells²`` (2D) or ``Ncells³`` (3D) points. This is the same
+Number of k-points **per periodic direction**. The Brillouin zone is sampled with a :math:`\Gamma`-centred
+Monkhorst–Pack mesh of :math:`N` (1D), :math:`N^2` (2D) or :math:`N^3` (3D) points, with :math:`N` = ``Ncells``. This is the same
 mesh Xatu builds, so a single-particle OptiX run with ``Ncells = N`` matches a Xatu run with an
-N×N mesh point by point.
+:math:`N\times N` mesh point by point.
 
 Along each reciprocal-lattice vector, the fractional coordinates are
 :math:`u_c = c/N - 1/2` for :math:`c = 0,\dots,N-1`. For odd :math:`N` they are shifted by
-:math:`1/(2N)`, giving a mesh symmetric about Γ.
+:math:`1/(2N)`, giving a mesh symmetric about :math:`\Gamma`.
 
 Convergence with ``Ncells`` is the main accuracy control. It must be checked, especially for the shift
 current. Used only when ``Xatu_interface`` is ``false``.
@@ -351,11 +351,11 @@ Controls the **excitonic optical matrix elements**, built from the Xatu envelope
 single-particle matrix elements. Only relevant when ``Xatu_interface`` is ``true``.
 
 ``linear``
-   Ground-state → exciton matrix elements. Needed for the excitonic ``absorbance``. Written to
+   Ground-state-to-exciton matrix elements. Needed for the excitonic ``absorbance``. Written to
    ``ome_linear_ex_<material>.omeex``.
 
 ``nonlinear``
-   Additionally computes the exciton → exciton (inter-exciton) matrix elements needed for the excitonic
+   Additionally computes the exciton-to-exciton (inter-exciton) matrix elements needed for the excitonic
    shift current. These stay in memory and are not written to disk unless you enable
    :ref:`kw-cache`.
 
@@ -385,7 +385,7 @@ Response
 Which optical response to compute:
 
 ``absorbance``
-   Linear optical conductivity :math:`\sigma^{ab}(\omega)`, full 3×3 tensor. Output:
+   Linear optical conductivity :math:`\sigma^{ab}(\omega)`, full :math:`3\times 3` tensor. Output:
    :doc:`outputs/linear_conductivity`.
 
 ``shift_shiftvector``
@@ -395,7 +395,7 @@ Which optical response to compute:
 
 ``shift_sumrule``
    Shift conductivity from the sum-rule form of the generalised derivative. It is only reliable when
-   ``Bandlist`` includes many remote bands; for a two-band window it is ≈ 0. OptiX prints a warning when
+   ``Bandlist`` includes many remote bands; for a two-band window it is :math:`\approx 0`. OptiX prints a warning when
    it is used. Mostly useful as a cross-check.
 
 ``shift_gender``
@@ -432,7 +432,7 @@ Four numbers on one line: ``E_min  E_max  eta  n_w``.
 The grid is :math:`\hbar\omega_i = E_\text{min} + (i-1)\,\Delta` with
 :math:`\Delta = (E_\text{max}-E_\text{min})/n_w` and :math:`i = 1,\dots,n_w`. **The last point is**
 :math:`E_\text{max}-\Delta` **, so** :math:`E_\text{max}` **itself is not included.** With
-``1 9 0.025 400`` the grid runs 1.00, 1.02, …, 8.98 eV.
+``1 9 0.025 400`` the grid runs 1.00, 1.02, ..., 8.98 eV.
 
 ``eta`` should be comparable to, or larger than, the typical energy spacing between transitions on
 your k-mesh. Otherwise the spectrum shows spurious mesh oscillations. Denser meshes allow smaller
@@ -517,6 +517,6 @@ Each time it reads, OptiX checks that the cache belongs to the current calculati
    The cache does **not** fingerprint the Wannier90 file. If you change the tight-binding model but
    keep the same file name and exciton spectrum, delete the cache by hand.
 
-The file is large: about :math:`96\,N^2` bytes for :math:`N` = ``Exciton_cutoff`` (≈ 340 MB for
-:math:`N = 1875`, ≈ 3 GB for :math:`N = 5625`). The cache is not used when ``Write_ex_kresolved`` is
+The file is large: about :math:`96\,N^2` bytes for :math:`N` = ``Exciton_cutoff`` (:math:`\approx` 340 MB for
+:math:`N = 1875`, :math:`\approx` 3 GB for :math:`N = 5625`). The cache is not used when ``Write_ex_kresolved`` is
 ``true``.

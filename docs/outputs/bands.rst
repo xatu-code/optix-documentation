@@ -20,8 +20,8 @@ lattice vectors :math:`\mathbf{G}_1, \mathbf{G}_2`:
 
    \tfrac12\mathbf{G}_1 \;\longrightarrow\; \Gamma \;\longrightarrow\; \tfrac12\mathbf{G}_2
 
-100 points per segment. Γ is point 100. For a rectangular lattice this is X → Γ → Y. For a hexagonal lattice it is
-M → Γ → M′, so the K points are **not** on the path.
+100 points per segment. :math:`\Gamma` is point 100. For a rectangular lattice this is :math:`X \to \Gamma \to Y`. For a hexagonal lattice it is
+:math:`M \to \Gamma \to M'`, so the K points are **not** on the path.
 
 The path is built in the plane of :math:`\mathbf{G}_1, \mathbf{G}_2` and only makes sense for 2D systems
 whose periodic directions are the first two lattice vectors.
@@ -36,12 +36,12 @@ One row per k-point:
    kx   ky   kz   s   E_1   E_2   ...   E_norb
 
 ``kx ky kz``
-   Cartesian k-point in bohr⁻¹. ``kz`` is not set by the path generator and should be ignored.
+   Cartesian k-point in :math:`\text{bohr}^{-1}`. ``kz`` is not set by the path generator and should be ignored.
 
 ``s``
-   Accumulated path length in bohr⁻¹. Use it as the x-axis.
+   Accumulated path length in :math:`\text{bohr}^{-1}`. Use it as the x-axis.
 
-``E_1 … E_norb``
+``E_1 ... E_norb``
    All ``norb`` eigenvalues in eV, in ascending order. Band ``E_Nfermi`` is the highest valence band,
    i.e. ``Bandlist`` entry ``0``. The energies are those of the Wannier90 model, **not** shifted to put
    the Fermi level at zero.

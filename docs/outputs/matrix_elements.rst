@@ -6,7 +6,7 @@ These files are intermediate results. OptiX writes them so that later runs can s
 matrix-element step (see :doc:`../workflows`). You rarely need to read them yourself, but their formats
 are documented here for post-processing and debugging.
 
-All quantities in these files are in **atomic units** (energies in Hartree, k in bohr⁻¹, velocities in
+All quantities in these files are in **atomic units** (energies in Hartree, k in :math:`\text{bohr}^{-1}`, velocities in
 atomic units of velocity, positions in bohr). Only the *band window* is stored, i.e. the bands in
 ``Bandlist`` (or in the Xatu band list), numbered :math:`1\dots N_b` in the order the list gives
 them. Valence bands come first.
@@ -57,7 +57,7 @@ they do not match the current input.
 ome_linear_ex_<material>.omeex
 ==============================
 
-Written by ``OME_ex = linear``. Plain text. It holds the ground-state → exciton velocity matrix elements
+Written by ``OME_ex = linear``. Plain text. It holds the ground-state-to-exciton velocity matrix elements
 :math:`P^a_N = \langle N|\hat v^a|0\rangle` for each exciton :math:`N = 1\dots` ``Exciton_cutoff``:
 
 .. code-block:: text

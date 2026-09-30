@@ -82,7 +82,7 @@ or with gnuplot:
 Terminal output
 ===============
 
-The terminal log lists each stage as it starts (``1. Entering parser_input_file`` … ``Opticx calculation
+The terminal log lists each stage as it starts (``1. Entering parser_input_file`` ... ``Opticx calculation
 ended``). During the matrix-element step it prints one line per k-point, which can make the log long. To
 keep it, redirect it to a file:
 

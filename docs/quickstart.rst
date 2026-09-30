@@ -2,22 +2,24 @@
 Quick start
 ===========
 
+OptiX is designed to be a standalone code for computing independent particle approximation (IPA), and a dependency code for excitonic optical responses.
+
 This page walks through three short calculations:
 
-1. the single-particle optical conductivity (absorbance) of a GeS monolayer,
-2. the single-particle shift conductivity of the same system,
-3. an excitonic calculation for hBN using exciton states from Xatu.
+1. the single-particle **linear** conductivity of a GeS monolayer,
+2. the single-particle **shift** conductivity of the same system,
+3. an excitonic calculation for hBN using exciton states from `Xatu <https://xatu-documentation.readthedocs.io>`_.
 
 The two Wannier90 models used here ship with the code in ``wannier90_files_input/``. The examples below
 assume the code was compiled in ``$OPTICX`` (e.g. ``export OPTICX=$HOME/opticx``).
 
 .. tip::
 
-   The meshes here are small (40×40) so every example runs in seconds on a laptop. That is good enough
-   to see the structure of the spectra, but not converged. Production runs typically use 100×100 or more.
+   The meshes here are small (40x40) so every example runs in seconds on a laptop. That is good enough
+   to see the structure of the spectra, but not converged. Production runs for IPA calculations typically use 100x100 or more.
 
-1. Absorbance of GeS (independent particles)
-============================================
+1. Linear conductivity of GeS (independent particles)
+=====================================================
 
 Create a working directory and an input file ``input.txt``:
 
@@ -51,7 +53,7 @@ In words:
 * the system is 2D, and the model has 27 Wannier orbitals, 20 of them filled (``Nfermi = 20``);
 * the two highest valence bands (``-1 0``) and the two lowest conduction bands (``1 2``) enter the
   calculation;
-* the Brillouin zone is sampled with a 40×40 Monkhorst–Pack mesh;
+* the Brillouin zone is sampled with a 40x40 Monkhorst–Pack mesh;
 * ``OME_sp = linear`` computes the velocity matrix elements needed for linear response;
 * the spectrum runs from 1 eV to 9 eV on 400 points, with a 0.05 eV Lorentzian broadening.
 
@@ -125,7 +127,7 @@ and run again. The new outputs are:
    shift_vector.dat                                  # shift-vector spectral function (diagnostic)
 
 In ``shift_sp_lengthgauge_*.dat``, column 1 is :math:`\hbar\omega` in eV. The 27 components follow in
-µA·nm/V², ordered :math:`xxx, xxy, xxz, xyx, \dots, zzz` (last index fastest). The column of component
+:math:`\mu\text{A nm/V}^2`, ordered :math:`xxx, xxy, xxz, xyx, \dots, zzz` (last index fastest). The column of component
 :math:`abc` (with :math:`x,y,z = 0,1,2`) is ``1 + 9a + 3b + c`` counting from zero, so:
 
 .. code-block:: python
@@ -142,7 +144,7 @@ In ``shift_sp_lengthgauge_*.dat``, column 1 is :math:`\hbar\omega` in eV. The 27
 3. Excitonic calculation for hBN (with Xatu)
 ============================================
 
-To include excitons, first solve the Bethe–Salpeter equation with `Xatu <https://xatu.readthedocs.io>`_
+To include excitons, first solve the Bethe–Salpeter equation with `Xatu <https://xatu-documentation.readthedocs.io>`_
 on **the same Wannier90 model**, then point OptiX to its output.
 
 Step 1 — run Xatu
