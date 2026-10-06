@@ -137,4 +137,5 @@ the shift-kernel equivalence check:
    make test
    bin/test_shift_kernel_equivalence
 
-Each test prints ``ALL TESTS PASSED`` (or ``ALL CHECKS PASSED``) on success.
+Each test prints ``ALL TESTS PASSED`` (or ``ALL CHECKS PASSED``) on success. The full list of test
+targets, and what each one checks, is in :doc:`validation`.

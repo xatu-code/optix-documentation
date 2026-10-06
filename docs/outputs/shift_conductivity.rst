@@ -2,7 +2,8 @@
 shift — shift (bulk photovoltaic) conductivity
 ==============================================
 
-Written when ``Response`` is ``shift_shiftvector``, ``shift_sumrule`` or ``shift_gender``:
+Written when ``Response`` is ``shift``, ``shift_covariant``, ``shift_shiftvector``, ``shift_sumrule`` or
+``shift_gender``:
 
 .. code-block:: text
 
@@ -21,6 +22,16 @@ Shkrebtii:
 
 Prefactor conventions differ between papers (factors of 2 and the definition of the field amplitude).
 Check them before comparing magnitudes.
+
+.. note::
+
+   Files written **before 2026-09-30** differ from a rerun by about :math:`1.7\times10^{-8}` relative.
+   The atomic-unit to :math:`\mu\mathrm{A\,nm/V}^2` factor used to be written out by hand at six places
+   in the source, and the copy used for ``shift_ex_lengthgauge_*.dat`` had lost a ``d0``, making it a
+   single-precision literal that ran :math:`2\times10^{-8}` high. It is now one named constant. The
+   difference is far below any physical significance and below every tolerance in the test suite, but
+   it does mean old files are not reproduced bit-for-bit. ``shift_sp_lengthgauge_*.dat`` was never
+   affected.
 
 See :doc:`../theory/shift_current` for the formulas.
 
@@ -76,7 +87,14 @@ Method used (single particle)
 
 The single-particle result depends on ``Response``:
 
-``shift_shiftvector`` *(recommended)*
+``shift`` *(recommended)*
+   ``shift_covariant``, or ``shift_shiftvector`` with ``Sp_method = per_band`` (:ref:`kw-sp-method`).
+
+``shift_covariant``
+   Eq. (9) with a generalised derivative covariant over groups of degenerate bands; no cut-offs (see
+   below and :ref:`shift-covariant`).
+
+``shift_shiftvector``
    Shift-vector expression plus the amplitude-gradient term. The second term vanishes for
    :math:`b = c` but is needed for the off-diagonal components (e.g. :math:`\sigma^{yxy}` in hBN).
 
@@ -87,11 +105,14 @@ The single-particle result depends on ``Response``:
 ``shift_gender``
    Not implemented. The single-particle file contains zeros.
 
-The excitonic result is the same for all three values.
+The excitonic result is the same for all of these values.
 
-Near degeneracies, finite-difference derivatives become unreliable. OptiX discards shift vectors and
-amplitude-gradient factors larger than 50 bohr, and drops the amplitude-gradient term for bands closer
-than 2.7 meV. These safeguards are automatic and cannot be configured.
+Near degeneracies, per-band finite-difference derivatives become unreliable. ``shift_shiftvector``
+therefore discards shift vectors larger than 50 bohr and drops the amplitude-gradient term for bands
+closer than 2.7 meV; these safeguards are automatic and cannot be configured, and exactly degenerate bands
+(non-symmorphic zone boundaries, the :math:`\Gamma`–M lines of MoS\ :sub:`2`) remain its main source of error.
+``shift_covariant``, which ``Response = shift`` uses by default, treats nearly degenerate bands as groups
+and needs neither safeguard.
 
 ``shift_vector.dat``
 ====================

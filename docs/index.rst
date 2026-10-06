@@ -8,11 +8,15 @@ OptiX: linear and nonlinear optics of crystals
 
 **OptiX** (executable: ``opticx``) is a Fortran code that computes the **linear and second-order optical
 response of crystals**. It works both in the independent-particle approximation (IPA) and with
-**excitonic effects** included. You give it a Wannier90 tight-binding model and, optionally, exciton
-eigenstates from `Xatu`_. It evaluates:
+**excitonic effects** included. You give it a Wannier90 tight-binding model (orthonormal, or with an
+overlap matrix, see :ref:`kw-orthonormal`) and, optionally, exciton eigenstates from `Xatu`_. It evaluates:
 
 * the **linear optical conductivity** :math:`\sigma^{ab}(\omega)`, from which the absorbance follows;
-* the **shift conductivity** :math:`\sigma^{abc}(0;\omega,-\omega)`, the bulk photovoltaic (shift-current) response.
+* the **shift conductivity** :math:`\sigma^{abc}(0;\omega,-\omega)`, the bulk photovoltaic (shift-current) response;
+* the **general second-order conductivity** :math:`\sigma^{abc}(\omega_1+\omega_2;\omega_1,\omega_2)`,
+  from which second-harmonic generation (:math:`\omega_2=\omega_1`), the electro-optic effect
+  (:math:`\omega_2=0`) and optical rectification (:math:`\omega_2=-\omega_1`) follow as special cases,
+  or a full two-dimensional map over both frequencies.
 
 Each response comes as a single-particle result and, when Xatu excitons are supplied, as an excitonic
 result too. That lets you see directly how the electron–hole interaction reshapes the spectrum.
@@ -63,7 +67,7 @@ Where to start
       :link: quickstart
       :link-type: doc
 
-      Absorbance and shift current of GeS, and an excitonic calculation for hBN with Xatu.
+      Linear and shift conductivity of GeS, an excitonic calculation for hBN with Xatu, and SHG.
 
    .. grid-item-card:: :octicon:`file-code` Input file
       :link: input_file
@@ -89,6 +93,18 @@ Where to start
 
       Units, broadening, frequency grid, and the formulas behind each response.
 
+   .. grid-item-card:: :octicon:`graph` Second-order response
+      :link: theory/second_order
+      :link-type: doc
+
+      SHG, electro-optic, rectification and the general two-frequency response; normalisation and sign.
+
+   .. grid-item-card:: :octicon:`checklist` Validation and changes
+      :link: validation
+      :link-type: doc
+
+      The test suite, what each check establishes, known limitations and recent changes.
+
 .. toctree::
    :hidden:
    :caption: Getting started
@@ -105,6 +121,7 @@ Where to start
    outputs/overview
    outputs/linear_conductivity
    outputs/shift_conductivity
+   outputs/second_order
    outputs/bands
    outputs/matrix_elements
 
@@ -115,11 +132,17 @@ Where to start
    theory/conventions
    theory/linear_response
    theory/shift_current
+   theory/shift_covariant
+   theory/second_order
+   theory/dc_limit
 
 .. toctree::
    :hidden:
    :caption: Help and reference
 
+   validation
+   limitations
    troubleshooting
+   changes
    misc/citing
    misc/license

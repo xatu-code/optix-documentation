@@ -39,3 +39,29 @@ table.docutils td, table.docutils th {
     color: var(--color-foreground-primary);
     box-shadow: inset 3px 0 0 var(--color-brand-primary);
 }
+
+/* ---- Full-width layout ------------------------------------------------- */
+
+/* Furo centres a fixed 46em content column and sizes the left drawer as calc(50% - 26em), which leaves wide
+   empty margins on large screens. Wherever the sidebar is shown (Furo's 63em breakpoint and up), pin the
+   navigation to the left edge at a fixed width and let the content column take all the remaining width up
+   to the table of contents. Phone and tablet layouts are unchanged. */
+@media (min-width: 63em) {
+    .sidebar-drawer {
+        width: 17em;
+        min-width: 17em;
+        flex: 0 0 17em;
+        justify-content: flex-start;
+    }
+    .sidebar-container {
+        width: 100%;
+    }
+    .content {
+        width: auto;
+        flex: 1 1 auto;
+        min-width: 0;
+    }
+    .toc-drawer {
+        flex: 0 0 15em;
+    }
+}

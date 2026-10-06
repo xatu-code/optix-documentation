@@ -4,11 +4,12 @@ Quick start
 
 OptiX is designed to be a standalone code for computing independent particle approximation (IPA), and a dependency code for excitonic optical responses.
 
-This page walks through three short calculations:
+This page walks through four short calculations:
 
 1. the single-particle **linear** conductivity of a GeS monolayer,
 2. the single-particle **shift** conductivity of the same system,
-3. an excitonic calculation for hBN using exciton states from `Xatu <https://xatu-documentation.readthedocs.io>`_.
+3. an excitonic calculation for hBN using exciton states from `Xatu <https://xatu-documentation.readthedocs.io>`_,
+4. second-harmonic generation, and a full two-frequency map.
 
 The two Wannier90 models used here ship with the code in ``wannier90_files_input/``. The examples below
 assume the code was compiled in ``$OPTICX`` (e.g. ``export OPTICX=$HOME/opticx``).
@@ -116,7 +117,7 @@ derivatives. Change two lines of the previous input:
    # OME_sp
    nonlinear
    # Response
-   shift_shiftvector
+   shift
 
 and run again. The new outputs are:
 
@@ -218,9 +219,50 @@ see :doc:`outputs/linear_conductivity`):
    Reproduced without modification from J. J. Esteve-Paredes *et al.*, `npj Comput. Mater. 11, 13 (2025) <https://doi.org/10.1038/s41524-024-01504-2>`_, under a `CC BY-NC-ND 4.0 <https://creativecommons.org/licenses/by-nc-nd/4.0/>`_ license.
 
 For the **excitonic shift current**, use ``nonlinear`` for both ``OME_sp`` and ``OME_ex``, and set
-``Response`` to ``shift_shiftvector``. The result goes to ``shift_ex_lengthgauge_<material>.dat``, next
+``Response`` to ``shift``. The result goes to ``shift_ex_lengthgauge_<material>.dat``, next
 to the single-particle ``shift_sp_lengthgauge_<material>.dat``. Excitonic second-order runs are much
 more expensive; :doc:`workflows` explains how to cache the exciton matrix elements between runs.
+
+4. Second-harmonic generation, and a 2D map
+============================================
+
+Every second-order process is a branch of one two-frequency expression, so the input differs from the
+shift-current one only in ``Response``:
+
+.. code-block:: text
+
+   # OME_sp
+   nonlinear
+   # Response
+   shg
+   # Energy_variables
+   0.2 4.0 0.05 400
+
+This writes ``shg_sp_lengthgauge_<material>.dat`` (and ``shg_ex_lengthgauge_*`` with Xatu). Remember
+that column 1 is the **fundamental** :math:`\hbar\omega`, so a two-photon resonance at :math:`E`
+appears at :math:`E/2`.
+
+Swapping ``shg`` for ``electrooptic`` or ``rectification`` gives
+:math:`\sigma(\omega;\omega,0)` and :math:`\sigma(0;\omega,-\omega)`. For an arbitrary ratio use
+``general`` with ``Frequency_ratio``; adding a second frequency grid turns it into a full map:
+
+.. code-block:: text
+
+   # Response
+   general
+   # Energy_variables
+   0.2 1.8 0.05 320
+   # Energy_variables_2
+   -1.8 1.8 480
+
+That is 320x480 = 153 600 frequency pairs in one file, with :math:`\omega_1` as the slow index. Its
+diagonal :math:`\omega_2 = \omega_1` is SHG and the line :math:`\omega_2 = 0` is the electro-optic
+response.
+
+.. warning::
+
+   The anti-diagonal :math:`\omega_2 = -\omega_1` of a map is **not** the shift current — it is close
+   to its negative. Use ``Response = rectification`` for that. :ref:`dc-limit` explains why.
 
 Where to go next
 ================
@@ -229,3 +271,5 @@ Where to go next
 * :doc:`workflows` — splitting a calculation into steps, and reusing matrix elements.
 * :doc:`theory/conventions` — units, frequency grid and broadening. Read this before comparing numbers
   with a paper.
+* :doc:`theory/second_order` — the two-frequency expression and the branches taken from it.
+* :ref:`dc-limit` — the three routes to :math:`\sigma(0;\omega,-\omega)`, and which to trust.

@@ -28,6 +28,9 @@ Units
      - atomic units (:math:`e^2/\hbar` for 2D sheets)
    * - Shift conductivity :math:`\sigma^{abc}`
      - :math:`\mu\text{A nm/V}^2` (2D sheet)
+   * - Second-order normalisation and sign
+     - :math:`J^{(2)}=\tfrac14\sum\sigma EE`, physical electron charge, verified against a real-time
+       simulation (since 2026-10-06, see :ref:`second-order-normalisation`)
    * - Band structure
      - k in :math:`\text{bohr}^{-1}`, energies in eV
    * - Matrix-element files
@@ -54,6 +57,12 @@ Frequency axis
   itself is **not** included.
 * For the shift current, :math:`\omega` is the frequency of the incoming light. The response is at zero
   frequency (DC).
+* For **second-harmonic generation** the axis is the **fundamental** :math:`\hbar\omega`, not
+  :math:`2\hbar\omega`. A two-photon resonance of an excitation at :math:`E` appears at
+  :math:`\hbar\omega = E/2`. This keeps the SHG files consistent with every other spectrum.
+* The general second-order files (``second_*``) carry **two** frequency columns,
+  :math:`\hbar\omega_p` and :math:`\hbar\omega_q`, so they describe a ratio scan and a 2D map with
+  the same layout.
 
 Broadening
 ==========
@@ -71,8 +80,19 @@ For the Lorentzian, ``eta`` is the half width at half maximum. For the Gaussian,
 deviation (FWHM :math:`= 2.355\,\eta`). The two shapes at the same ``eta`` are **not** equally wide.
 Keep this in mind when comparing spectra.
 
-OptiX computes only the **resonant (absorptive)** part of each response: the terms proportional to the
-broadened :math:`\delta`. Principal-value (dispersive) parts are not computed.
+The linear and shift-current routes compute only the **resonant (absorptive)** part: the terms
+proportional to the broadened :math:`\delta`. Principal-value (dispersive) parts are not computed there.
+
+The general second-order routes (``shg``, ``electrooptic``, ``rectification``, ``general``) work
+differently. They do not use an explicit lineshape at all: every frequency is given a small imaginary
+part, :math:`\hbar\omega_j \to \hbar\omega_j + i\eta`, and the sum frequency is built as the **sum
+of the two complex frequencies**, :math:`\hbar\omega_\Sigma = \hbar\omega_p + \hbar\omega_q`. So
+for SHG :math:`\hbar\omega_\Sigma = 2\hbar\omega + 2i\eta`, carrying :math:`2i\eta` and not
+:math:`i\eta`. Both the real and the imaginary part of :math:`\sigma` come out, and ``Broadening_type``
+has no effect on these branches.
+
+The DC line :math:`\omega_2 = -\omega_1` is the one place where this convention is modified, for
+reasons set out in :ref:`dc-limit`.
 
 Occupations and spin
 ====================
@@ -92,7 +112,7 @@ With ``N = Ncells``, along each reciprocal lattice vector the fractional coordin
 The first reciprocal direction runs fastest.
 
 Derivatives with respect to :math:`\mathbf{k}` (needed for second-order responses) are taken by finite
-differences, with a step of :math:`10^{-6}\,\text{bohr}^{-1}` for single-particle quantities. For the exciton
+differences, with a step of :math:`10^{-6}` :math:`\text{bohr}^{-1}` for single-particle quantities. For the exciton
 envelopes they are taken on the mesh itself, with periodic wrap-around.
 
 Optical matrix elements
@@ -101,17 +121,43 @@ Optical matrix elements
 * The **velocity** matrix elements come from the Wannier Hamiltonian *and* the Wannier90 position matrix
   elements, i.e. the full tight-binding velocity
   :math:`\hat{\mathbf v} = \partial_{\mathbf k}\hat H + i[\hat H,\hat{\mathbf A}]`, including
-  intra-cell dipoles. The Wannier functions are assumed orthonormal.
+  intra-cell dipoles. For a non-orthonormal basis (:ref:`kw-orthonormal`) the overlap enters as well:
+  OptiX solves :math:`Hc = ESc` and builds the matrix elements from :math:`H`, :math:`S` and the position
+  matrices together. Before anything else, the reader checks the Hermiticity of all three and restores it
+  where the file breaks it (:ref:`kw-wannier`).
 * Second-order responses are evaluated in the **length gauge** (hence the ``lengthgauge`` in the file
   names).
 * Eigenvectors from separate diagonalisations carry arbitrary k-dependent phases. OptiX fixes the gauge
   locally before differentiating, and rotates degenerate multiplets into a smooth basis. The Xatu exciton
   envelopes are carried into that same basis.
 
+Checking your own material
+==========================
+
+Most surprising results come from the **input model**, not the code. Before trusting a spectrum,
+diagonalise :math:`H(\mathbf k)` on the production mesh and confirm the symmetry you expect, at least
+
+.. math::
+
+   E_n(C_3\mathbf k) = E_n(\mathbf k) \qquad\text{and}\qquad E_n(-\mathbf k) = E_n(\mathbf k).
+
+Wannier models built without symmetrisation often fail these by a few meV, and that propagates into
+every response. Time reversal in particular is worth checking: several of the second-order identities
+hold only because a term cancels under it (see :ref:`dc-limit`).
+
+.. warning:: **Measure symmetry on the full tensor**
+
+   A common mistake is to quantify the C3 violation using only the in-plane :math:`2\times2\times2`
+   block. For a material whose response is dominated by out-of-plane components that measures
+   cancellation noise, not symmetry, and can report tens of percent for a tensor whose true residual is
+   a fraction of one percent. Use the complete projector on the full rank-3 tensor,
+   :math:`\lVert T - PT\rVert / \lVert T\rVert` with :math:`P = (1 + C_3 + C_3^2)/3`.
+
 Sign of the shift current
 =========================
 
 The shift conductivity follows the sign convention of Esteve-Paredes *et al.*, npj Comput. Mater. 11, 13
 (2025), Eqs. 9 (IPA) and 10 (excitonic). The single-particle and excitonic results use the same
-convention, and they agree in the non-interacting limit. Other codes and papers may differ by an overall
-sign or by factors of 2 in the definition of the field amplitude.
+convention, and they agree in the non-interacting limit. That sign is the physical one: on resonance it
+is the sign of the DC current of a real-time simulation (``make check_realtime_sign``). Other codes and
+papers may differ by an overall sign or by factors of 2 in the definition of the field amplitude.

@@ -20,7 +20,7 @@ All in one run
    # OME_sp
    linear            (or nonlinear for shift current)
    # Response
-   absorbance        (or shift_shiftvector)
+   absorbance        (or shift)
 
 Matrix elements first, spectra later
 ------------------------------------
@@ -42,7 +42,7 @@ then rerun as often as needed with:
    # OME_sp
    none
    # Response
-   shift_shiftvector
+   shift
    # Energy_variables
    0.5 6 0.02 1000
    # Broadening_type
@@ -63,8 +63,14 @@ Excitonic calculations
 ======================
 
 When ``Xatu_interface = true``, compute the single-particle and excitonic matrix elements **in the same
-run**. The exciton envelopes are rotated into the single-particle band gauge while ``OME_sp`` is being
-computed; see :ref:`kw-omeex`.
+run**: the exciton envelopes are rotated into the single-particle band gauge while ``OME_sp`` is being
+computed, so ``OME_sp = none`` is refused for excitonic runs (see :ref:`kw-omeex`).
+
+The exception is a second-order cache hit. Once ``Cache_ome_ex = write`` has stored the excitonic
+matrix elements, later runs may use ``OME_sp = none`` **and** ``Cache_ome_ex = read`` together, which
+skips both the single-particle and the excitonic matrix-element stages and reads everything from disk.
+That is the cheap way to scan several ``Response`` branches, several frequency windows or several
+broadenings over one set of matrix elements — the branches all share the same elements.
 
 Excitonic absorbance
 --------------------
@@ -92,7 +98,7 @@ Excitonic shift current
    # OME_ex
    nonlinear
    # Response
-   shift_shiftvector
+   shift
    # Cache_ome_ex
    readwrite
 
@@ -110,6 +116,34 @@ Typical sequence:
    raise it, the elements are recomputed.
 
 Delete the ``.omeex2`` file whenever you change the Wannier90 model; see the warning in :ref:`kw-cache`.
+
+Large calculations
+==================
+
+For an excitonic second-order study the expensive stage is building the exciton matrix elements, and
+it does not depend on ``Response``, the frequency window or the broadening. So:
+
+#. run once with ``Cache_ome_ex = write``;
+#. run every branch afterwards with ``OME_sp = none`` and ``Cache_ome_ex = read``.
+
+That second form skips both the single-particle and the excitonic matrix-element stages, and it also
+skips reading the exciton envelopes from the ``.states`` file — which for a large basis is the biggest
+remaining start-up cost, since that file is plain ASCII and can run to gigabytes.
+
+**Memory.** The peak is dominated by terms linear in ``Exciton_cutoff`` (the envelopes and their
+k-derivative, :math:`\texttt{norb\_ex} \times N`) plus :math:`8N^2` complex numbers for the
+accumulators. It does **not** scale with the number of OpenMP threads, so there is no memory reason to
+run on fewer cores. As a reference point, the complete 5625-state basis of a 75x75 two-band model
+needs 6.6 GB, and its complete 8100-state basis on a 90x90 mesh needs 12.9 GB.
+
+**Threads.** The matrix-element stage is one large matrix multiplication per term and is threaded
+through BLAS; the response stage likewise. Use the cores you have. If you link a threaded BLAS, make
+sure it is the OpenMP build (or set ``OPENBLAS_NUM_THREADS`` explicitly), so that it stands down inside
+OptiX's own parallel regions instead of oversubscribing.
+
+**Frequency grids.** A two-dimensional map costs :math:`n_w\times n_{wb}` kernel evaluations, so it is the one
+place where the frequency grid, rather than the exciton count, dominates: a 320x480 map is 153 600
+pairs. Size it deliberately.
 
 Convergence checklist
 =====================

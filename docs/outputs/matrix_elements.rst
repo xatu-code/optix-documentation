@@ -36,7 +36,8 @@ ome_nonlinear_sp_<material>.omesp
 Written by ``OME_sp = nonlinear``. **Unformatted binary stream** (native endianness, 8-byte reals).
 Besides energies and velocities, it contains the Berry connections, the shift vectors
 :math:`R^{a,b}_{ij}`, the sum-rule generalised derivatives :math:`(r^b_{ij})_{;k^a}` and the
-k-derivatives of :math:`|v^b_{ij}|`. In order:
+k-derivatives of :math:`|v^b_{ij}|`; with a covariant method (:ref:`kw-sp-method`, ``shift_covariant``)
+also the data its generalised derivative needs. In order:
 
 .. code-block:: text
 
@@ -49,10 +50,21 @@ k-derivatives of :math:`|v^b_{ij}|`. In order:
        complex128 Berry connection A(3, Nb, Nb)
        real64     shift vector R(3, 3, Nb, Nb)
        complex128 generalised derivative (3, 3, Nb, Nb)
-   real64  d|v|/dk (Nk, 3, 3, Nb, Nb)          # appended after all k-points
+   real64     d|v|/dk (Nk, 3, 3, Nb, Nb)                       # appended after all k-points
+   complex128 parallel-transported dv/dk (Nk, 3, 3, Nb, Nb)
+   # only if a covariant method was requested (Sp_method = covariant, or Response = shift / shift_covariant):
+   complex128 block-covariant generalised derivative (Nk, 3, 3, Nb, Nb)
+   complex128 velocity in the plain eigenbasis (Nk, 3, Nb, Nb)
+   int32      block label of each band (Nk, Nb)
+   # only for the covariant SHG / electro-optic / rectification / general:
+   complex128 neighbour-to-centre block transport (Nk, 6, Nb, Nb)
+   complex128 off-block positions at the 7 stencil points (Nk, 7, 3, Nb, Nb)
+   real64     energies at the 7 stencil points (Nk, 7, Nb)
+   complex128 intra-block Wannier-centre connection (Nk, 3, Nb, Nb)
 
 Arrays are in Fortran (column-major) order. OptiX checks ``Nk`` and ``Nb`` when reading, and stops if
-they do not match the current input.
+they do not match the current input, or if the file lacks an array the requested ``Response`` needs.
+Files written by older versions stay readable for the responses they cover.
 
 ome_linear_ex_<material>.omeex
 ==============================

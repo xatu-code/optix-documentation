@@ -49,6 +49,12 @@ Which files a run produces
    * - ``shift_ex_lengthgauge_<material>.dat``
      - ``Response = shift_*`` with Xatu
      - :doc:`shift_conductivity`
+   * - ``shg_sp_lengthgauge_<material>.dat``, ``shg_ex_lengthgauge_<material>.dat``
+     - ``Response = shg``
+     - :doc:`second_order`
+   * - ``second_<tag>_lengthgauge_<material>.dat``, ``second_ex_<tag>_lengthgauge_<material>.dat``
+     - ``Response`` = ``electrooptic``, ``rectification`` or ``general`` (``<tag>`` is that name)
+     - :doc:`second_order`
 
 .. note::
 
@@ -58,12 +64,16 @@ Which files a run produces
 General format of the spectra
 =============================
 
-All spectral files (``sigma_*`` and ``shift_*``) share these conventions:
+All spectral files are plain text, whitespace separated, one row per frequency, with tensor components
+in Cartesian order and the **last index fastest**. They fall into two groups:
 
-* plain text, whitespace separated, **no header line**, one row per frequency;
-* column 1 is the photon energy :math:`\hbar\omega` in **eV**, on the grid defined by
-  ``Energy_variables`` (see :ref:`kw-energy`);
-* the remaining columns are tensor components, in Cartesian order with the **last index fastest**.
+* ``sigma_*`` and ``shift_*`` have **no header line** and hold **real** values. Column 1 is the photon
+  energy :math:`\hbar\omega` in **eV**, on the grid defined by ``Energy_variables``
+  (see :ref:`kw-energy`).
+* ``shg_*`` and ``second_*`` (the second-order files, :doc:`second_order`) begin with a **header line
+  starting with** ``#`` and hold **complex** values, real and imaginary part interleaved. The
+  ``second_*`` files carry **two** frequency columns, :math:`\hbar\omega_p` and
+  :math:`\hbar\omega_q`. ``numpy.loadtxt`` skips the header automatically.
 
 They load directly with NumPy:
 

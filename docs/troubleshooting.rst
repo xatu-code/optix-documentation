@@ -10,9 +10,33 @@ Errors that stop the run
 ``Error: Invalid value in Xatu_interface. Expected "true" or "false".``
    The value is not exactly ``true`` or ``false`` (it is case sensitive).
 
+``ERROR: Invalid value in Orthonormal. Expected "true" or "false".``
+   The value of :ref:`kw-orthonormal` is not exactly ``true`` or ``false`` (it is case sensitive).
+
+``ERROR: Generalized eigenvalue problem failed. zhegv failed with INFO = ...``
+   Only with ``Orthonormal = false``. The overlap :math:`S(\mathbf k)` is not positive definite at some
+   k-point (``INFO`` larger than the number of orbitals), or the overlap section of the model file was not
+   read as intended. Check that section (:ref:`kw-orthonormal`).
+
+``ERROR (parser_input_file): Sp_method = "..." is not recognised.``
+   Use ``covariant`` or ``per_band`` (:ref:`kw-sp-method`).
+
 ``ERROR (optical_response): unknown Response = "..."``
    The ``Response`` value is misspelled or not lowercase. Valid values: ``none``, ``absorbance``,
-   ``shift_sumrule``, ``shift_shiftvector``, ``shift_gender``.
+   ``shift``, ``shift_covariant``, ``shift_shiftvector``, ``shift_sumrule``, ``shift_gender``, ``shg``,
+   ``shg_covariant``, ``electrooptic``, ``rectification``, ``general``.
+
+``ERROR (ome_ex): the exciton envelopes are not in the same basis as the single-particle matrix elements``
+   You asked for an excitonic response with ``OME_sp = none`` and no usable second-order cache. The
+   Eq. (A4) rotation matrices are rebuilt only while ``OME_sp`` is computed and are not stored in the
+   ``.omesp`` file, so the envelopes would be in the wrong basis. Either set ``OME_sp = nonlinear``, or
+   keep ``OME_sp = none`` and supply a matching cache with ``Cache_ome_ex = read``. See
+   :ref:`kw-omeex`.
+
+``ERROR (get_sigma_general_sp): hbar(w_p+w_q) is exactly zero at a grid point``
+   With ``Sp_method = per_band``, a single-particle second-order run landed on :math:`\omega_1 + \omega_2 = 0` with zero broadening.
+   Term 1 of Eq. (A3a) includes :math:`n = m`, where the outer denominator is
+   :math:`\hbar\omega_\Sigma` itself, so this is a genuine 0/0. Use a nonzero ``eta``.
 
 ``ERROR (parser_input_file): Cache_ome_ex = "..." is not recognised.``
    Use ``read``, ``write``, ``readwrite`` (= ``true``, ``both``) or ``off`` (= ``false``, ``none``).
@@ -28,9 +52,24 @@ Errors that stop the run
    You used ``OME_sp = none`` after changing ``Ncells`` or ``Bandlist``. Regenerate the file with
    ``OME_sp = nonlinear``.
 
+``ERROR (sigma_second_sp): the .omesp file has no covariant second-order data``
+   ``OME_sp = none`` read an ``.omesp`` that lacks what ``Sp_method = covariant`` needs for SHG,
+   electro-optic, rectification or ``general``: it was written by an older version, for another
+   ``Response``, or with ``Sp_method = per_band``. Run once with ``OME_sp = nonlinear``.
+
+``ERROR (sigma_second_sp): the .omesp file has no block-covariant derivative``
+   The same for ``Response = shift`` / ``shift_covariant``: the ``.omesp`` must come from a run that
+   computed the covariant shift current.
+
 ``ERROR (sigma_second_sp): the .omesp file has no derivative of |v|``
    The nonlinear matrix-element file was written by an older OptiX version. Regenerate it with
    ``OME_sp = nonlinear``.
+
+``ERROR (get_exciton_data): Exciton_cutoff = N but only M exciton energies are present``
+   ``Exciton_cutoff`` is larger than the number of states Xatu wrote. The message gives ``M``; lower
+   the keyword to at most that, or rerun Xatu with a larger ``-n``. A companion message from
+   ``load_fk_ex`` covers the case where the ``.states`` file holds fewer wavefunctions than
+   ``.eigval`` lists energies.
 
 ``ERROR (sigma_second_ex): xme_ex_inter/vme_ex_inter not populated``
    An excitonic shift current was requested without ``OME_ex = nonlinear`` in the same run (or without a
@@ -38,6 +77,16 @@ Errors that stop the run
 
 ``ERROR (read_ome_ex_second): ... was written for a DIFFERENT system`` / ``cached exciton energies differ``
    The ``.omeex2`` cache belongs to another calculation. Delete it or move it aside.
+
+``ERROR (read_ome_ex_second): ... was written for a DIFFERENT band set``
+   The cache was built from different bands, **or from the same bands in a different order**, which is
+   just as wrong: the exciton envelopes would be paired with the wrong band. The message prints both
+   band lists. Delete the cache or move it aside. This check exists because band *counts* alone cannot
+   tell ``[60, 61]`` from ``[61, 60]``, and that ambiguity once invalidated a whole set of published
+   numbers. See the note on format version 2 in :ref:`kw-cache`.
+
+``ERROR (read_ome_ex_second): ... has a DIFFERENT number of bands``
+   Same cause, detected one step earlier. Delete the cache.
 
 ``ERROR (get_exciton_dim): no repeated valence-band index found ...``
    The ``.states`` file does not look like a Xatu eigenstates file. Check the path, and that Xatu ran
@@ -65,8 +114,27 @@ The run is slow
    * Split the calculation and reuse matrix elements (see :doc:`workflows`). For excitonic shift
      currents, use ``Cache_ome_ex``.
 
+Messages that are not errors
+============================
+
+``Cache ... is format version 1, which does NOT record the band list``
+   The ``.omeex2`` file predates 2026-09-30. It is ignored and the matrix elements are recomputed —
+   the run continues and the result is correct. Version 1 recorded only the band *counts*, so it
+   cannot be checked for the band-order hazard above, and the order it was written with cannot be
+   recovered from the file. Delete it; regenerating is far cheaper than it used to be.
+
+``Cache ... is truncated or unreadable, recomputing.``
+   A partial file, usually from an interrupted run. Harmless; delete it.
+
 Warnings
 ========
+
+``WARNING (parser_wannier90_tb): ... not Hermitian: max defect ...``
+   The model file breaks the Hermiticity of :math:`H(\mathbf R)`, :math:`S(\mathbf R)` or the position matrices
+   (:ref:`kw-wannier`). OptiX replaces the block by its Hermitian part and continues, and the message gives the
+   size and location of the largest defect. Small defects come from the precision the file was written with;
+   larger ones (MoS\ :sub:`2`: :math:`6\times10^{-3}` Angstrom; In\ :sub:`2`\ Se\ :sub:`3`: 0.12 Angstrom) are a property of the Wannierisation. Regenerate or repair the
+   file to silence the warning; the results will then not change.
 
 ``WARNING (ome_sp): an Eq. (A4) multiplet straddles the Bandlist edge``
    A set of degenerate bands is only partly inside ``Bandlist``. Extend the list so that it contains
@@ -81,7 +149,7 @@ Warnings
    Check the input.
 
 ``WARNING: shift_sumrule is unreliable unless the band window is large``
-   Expected when using ``shift_sumrule``. Prefer ``shift_shiftvector``.
+   Expected when using ``shift_sumrule``. Prefer ``shift``.
 
 Results look wrong
 ==================
