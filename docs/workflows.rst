@@ -62,11 +62,11 @@ writes the *nonlinear* one. To get both responses, run ``OME_sp = linear`` once 
 Excitonic calculations
 ======================
 
-When ``Xatu_interface = true``, compute the single-particle and excitonic matrix elements **in the same
-run**: the exciton envelopes are rotated into the single-particle band gauge while ``OME_sp`` is being
-computed, so ``OME_sp = none`` is refused for excitonic runs (see :ref:`kw-omeex`).
+When ``Xatu_interface = true``, the exciton envelopes are rotated into the single-particle band basis.
+The ``.omesp`` file stores that basis (since 2026-10-06), so an excitonic run may reuse it with
+``OME_sp = none``; an ``.omesp`` from an earlier version is refused (see :ref:`kw-omeex`).
 
-The exception is a second-order cache hit. Once ``Cache_ome_ex = write`` has stored the excitonic
+Faster still is a second-order cache. Once ``Cache_ome_ex = write`` has stored the excitonic
 matrix elements, later runs may use ``OME_sp = none`` **and** ``Cache_ome_ex = read`` together, which
 skips both the single-particle and the excitonic matrix-element stages and reads everything from disk.
 That is the cheap way to scan several ``Response`` branches, several frequency windows or several

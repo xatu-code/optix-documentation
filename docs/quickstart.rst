@@ -261,8 +261,8 @@ response.
 
 .. warning::
 
-   The anti-diagonal :math:`\omega_2 = -\omega_1` of a map is **not** the shift current — it is close
-   to its negative. Use ``Response = rectification`` for that. :ref:`dc-limit` explains why.
+   The anti-diagonal :math:`\omega_2 = -\omega_1` of a map is the rectification, **not** the shift current.
+   Use ``Response = shift`` for that. :ref:`dc-limit` explains why.
 
 Where to go next
 ================

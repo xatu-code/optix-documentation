@@ -28,7 +28,9 @@ Written by ``OME_sp = linear``. Plain text. It holds band energies and velocity 
    ...
 
 The file contains no header with its dimensions. It can only be read back with the same k-mesh and
-band window that produced it.
+band window that produced it. Since 2026-10-06 it ends with a line ``#A4W`` followed by the Eq. (A4)
+rotation of the exciton window, :math:`N_k\times N_b\times N_b` complex numbers, which an excitonic run
+with ``OME_sp = none`` needs (:ref:`kw-omeex`).
 
 ome_nonlinear_sp_<material>.omesp
 =================================
@@ -52,11 +54,17 @@ also the data its generalised derivative needs. In order:
        complex128 generalised derivative (3, 3, Nb, Nb)
    real64     d|v|/dk (Nk, 3, 3, Nb, Nb)                       # appended after all k-points
    complex128 parallel-transported dv/dk (Nk, 3, 3, Nb, Nb)
-   # only if a covariant method was requested (Sp_method = covariant, or Response = shift / shift_covariant):
+   int32      tag 1330464562, flags, Norb                     # since 2026-10-06; the flags say which
+                                                              # of the sections below are present
+   # flags bit 0: the Eq. (A4) rotation of the exciton window
+   complex128 a4_W (Nk, Nb, Nb)
+   # flags bit 1: the exciton-window states for the covariant X_NN'
+   complex128 c (Norb, Nb, Nk),  S c (Norb, Nb, Nk),  c^H A c (Nk, 3, Nb, Nb)
+   # flags bit 2: a covariant method was requested (Sp_method = covariant, or Response = shift / shift_covariant)
    complex128 block-covariant generalised derivative (Nk, 3, 3, Nb, Nb)
    complex128 velocity in the plain eigenbasis (Nk, 3, Nb, Nb)
    int32      block label of each band (Nk, Nb)
-   # only for the covariant SHG / electro-optic / rectification / general:
+   # flags bit 3: the covariant SHG / electro-optic / rectification / general
    complex128 neighbour-to-centre block transport (Nk, 6, Nb, Nb)
    complex128 off-block positions at the 7 stencil points (Nk, 7, 3, Nb, Nb)
    real64     energies at the 7 stencil points (Nk, 7, Nb)
@@ -64,7 +72,9 @@ also the data its generalised derivative needs. In order:
 
 Arrays are in Fortran (column-major) order. OptiX checks ``Nk`` and ``Nb`` when reading, and stops if
 they do not match the current input, or if the file lacks an array the requested ``Response`` needs.
-Files written by older versions stay readable for the responses they cover.
+Files written by older versions (no tag: the covariant sections, if any, follow the derivative arrays
+directly) stay readable for the responses they cover; they lack the exciton-window basis, so an excitonic run
+cannot use them with ``OME_sp = none``.
 
 ome_linear_ex_<material>.omeex
 ==============================

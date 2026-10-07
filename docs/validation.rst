@@ -24,17 +24,25 @@ Test suite
    * - ``make test``, ``make test_matrix``
      - shift-kernel scalar vs matrix equivalence (1458 comparisons at 1e-10)
    * - ``make run_test_second_symmetry``
-     - the general two-frequency branch at :math:`\omega_2/\omega_1 \neq 1`: method A vs B, D3h, the :math:`r\leftrightarrow 1/r` identity, and the DC branch's convention
+     - the general two-frequency branch at :math:`\omega_2/\omega_1 \neq 1`: method A vs B, D3h, the :math:`r\leftrightarrow 1/r` identity, and the causal rectification's reality, D3h and forbidden injection
    * - ``make check_ome_cache``
      - the five ``Cache_ome_ex`` modes: what each run does *and* what it reports doing
    * - ``make check_a4_basis_guard``
-     - that ``OME_sp = none`` is refused for excitonic runs, and that the ``Cache_ome_ex = read`` exemption is allowed and exact
+     - that ``OME_sp = none`` reads the stored Eq. (A4) basis and reproduces an excitonic run exactly (linear and second order), that an ``.omesp`` without it is refused, and that the ``Cache_ome_ex = read`` exemption is allowed and exact
    * - ``make check_gauge_covariance``
      - that eigenvector phases, and rotations inside degenerate blocks, do not move X_nm or any shift/SHG output
    * - ``make check_shift_covariant``
      - the covariant single-particle methods (23 checks): shift vs exact Eq. 9 on hBN; SHG and rectification vs ``Sp_method = per_band`` on hBN; C3 on MoS\ :sub:`2`; invariance under rotations inside degenerate blocks
    * - ``make check_tb_hermiticity``
      - the tight-binding reader's Hermiticity check and repair: exact files untouched, lower-triangle storage completed, non-Hermitian H / r (and, where supported, non-orthonormal S and r with the R S term) warned about and equal to a hand-Hermitised twin
+   * - ``make check_ex_rectification``
+     - the excitonic rectification (whole causal response): in the non-interacting limit Re equal to the single-particle rectification and the injection weight (Im) equal to the single-particle one, scaling as :math:`1/\eta`; reality of the current; forbidden injection on flat hBN; a dense NumPy re-evaluation from the cached matrix elements (real hBN and non-interacting buckled hBN, one unit factor); the obsolete ``Ex_rectification`` keyword
+   * - ``make check_out_of_plane``
+     - against a real-time propagation on non-interacting buckled hBN (hybrid gauge, exact for centre-only positions): the single-particle shift current along z equals the excitonic route; the rectification components xxx, zxx, xxz, zzz of both paths; and the **absolute sign** of the injection current from circularly polarised light, for the excitonic rectification and both single-particle methods
+   * - ``make check_bands``
+     - the band structure along a k-path: eigenvalues equal an independent NumPy diagonalisation (hBN, buckled hBN, MoS\ :sub:`2`), the hexagonal default path (K at the zone corner, the K gap), the ``Kpath`` point counts, jumps and labels, ``Response = bands`` writing only the band file, a malformed ``Kpath`` line refused
+   * - ``make check_bandlist_guard``
+     - the band-window report and the unusual-``Bandlist`` warning (missing frontier bands, gaps, repeats; silent on complete windows and on Xatu band lists)
    * - ``make check_realtime_sign``
      - **absolute sign and normalisation**: SHG, rectification and the shift current on hBN against a real-time propagation of the density matrix (:ref:`second-order-normalisation`)
 
@@ -135,59 +143,34 @@ The code reproduces a selection rule it was never told. The hBN / buckled-hBN pa
 of this test, because the two models have **identical bands** and differ only by the mirror (see below),
 so the ratio of their Im :math:`\sigma` reaches 290 000.
 
-Rectification equals the shift current
----------------------------------------
+Rectification and the shift current
+-----------------------------------
 
-:math:`\sigma(0;\omega,-\omega)` and the shift current are the same equation in the same regime, and
-the code shows it: the excitonic ``rectification`` reproduces the independently validated shift-current
-route to 3e-9 on hBN and 9e-8 in the non-interacting limit, with :math:`\mathrm{Im}\,\sigma = 0` exactly.
-(The single-particle ``rectification`` is the full causal response and matches the shift current on
-resonance only; see :ref:`dc-single-particle`.) Each
-is then an independent cross-check of the other. Getting there required the DC convention described in
-:ref:`dc-limit`; under the resonant convention the two disagree by a factor of ~2 with a spurious
-dispersive line shape.
+The excitonic ``rectification`` is the causal :math:`\sigma(0;\omega,-\omega)` (:ref:`dc-excitonic-rectification`);
+the shift current is ``Response = shift``. Their relation is itself a check:
 
-Across materials the residual tracks the model's **time reversal**, not its point group:
+* **non-interacting limit**: the excitonic rectification equals the single-particle rectification, an
+  independent formula, to :math:`5\times10^{-4}` below the gap and :math:`4\times10^{-4}` at the peak (hBN
+  30x30, ``make check_sp_shift``), and both equal the shift current on resonance;
+* **real excitons**: the two methods of [Taghizadeh2018]_ (A with the bare current in term 3, B with the
+  position operator) give the same symmetric real part at the same mesh (0.525 of the shift current on
+  buckled hBN 75x75), and that ratio is mesh-converged (0.5254 at 75x75 and 90x90); terms 1 and 2 alone
+  reproduce the shift current to a difference proportional to :math:`\eta`. The remaining difference is the
+  exciton-exciton term between bound excitons (:ref:`dc-term3`);
+* **implementation**: a dense NumPy re-evaluation of the formula from the cached matrix elements reproduces
+  the output to :math:`2\times10^{-10}` (``make check_ex_rectification``).
 
-.. list-table::
-   :header-rows: 1
-   :widths: 24 22 28 26
-
-   * - material
-     - point group
-     - :math:`\max|E_n(-\mathbf k)-E_n(\mathbf k)|`
-     - agreement
-   * - hBN
-     - :math:`D_{3h}`
-     - exact
-     - 3.4e-9
-   * - ReS\ :sub:`2`
-     - :math:`C_1` (none)
-     - 3.1e-4 meV
-     - 2.1e-6
-   * - In\ :sub:`2`\ Se\ :sub:`3`
-     - :math:`C_{3v}`
-     - 13.8 meV
-     - 9.5e-2
-   * - MoSe\ :sub:`2`
-     - :math:`D_{3h}`
-     - 121.4 meV
-     - 6.4e-1
-
-ReS\ :sub:`2` has no point symmetry at all and still agrees to :math:`10^{-6}`, while MoSe\ :sub:`2` shares hBN's crystal
-class and is the worst of the four.
-
-The ReS\ :sub:`2` figure is essentially independent of the exciton basis — 1.54e-6, 1.78e-6 and 2.13e-6 at 100,
-400 and 800 excitons, with a correlation of 1.0000000000 in every case, and agreement to :math:`10^{-6}`
-or better on each of the 27 tensor components individually. These values were regenerated on 2026-09-30
-with the corrected conduction-band order :math:`c = [60, 61]`.
+Until 2026-10-07 the excitonic ``rectification`` used the shift-current convention and reproduced the
+shift-current route to :math:`3\times10^{-9}` on hBN, limited on other materials by the time-reversal
+symmetry of the tight-binding model (In\ :sub:`2`\ Se\ :sub:`3` :math:`9.5\times10^{-2}`, MoSe\ :sub:`2`
+:math:`6.4\times10^{-1}`, whose models break it by 14 and 121 meV).
 
 The DC limit
 ------------
 
-* :math:`\mathrm{Im}\,\sigma(0;\omega,-\omega) = 0` to :math:`10^{-12}`, as [Sipe2000]_ derives
-  analytically — note that the *excitonic* branch imposes this by construction, so the meaningful test
-  is the single-particle one;
+* :math:`\mathrm{Im}\,\sigma(0;\omega,-\omega) = 0` to :math:`10^{-12}` on the single-particle branch where
+  injection is forbidden, as [Sipe2000]_ derives analytically; the excitonic branch reaches it with the
+  k-mesh (flat hBN: 1.8% / 0.71% / 0.25% of Re at 30x30 / 45x45 / 60x60);
 * the :math:`\omega_\Sigma \to 0` limit is path-independent: approaching from :math:`\omega_\Sigma > 0`
   and :math:`< 0` gives 0.21742 and 0.21652 at equal :math:`|\omega_\Sigma|`, converging on 0.22539.
 
@@ -256,14 +239,6 @@ Eq. (A4) rotation and the cache fingerprint at ``nv > 1``.
      - result
    * - ``rectification`` vs ``general`` at r = -1
      - byte-identical
-   * - Im :math:`\sigma` on the DC branch
-     - exactly 0
-   * - DC branch vs the excitonic shift current, scale / correlation
-     - 0.9993–0.9999 / 0.9997+
-   * - ... on the dominant polar components
-     - 0.7%
-   * - single-particle ``rectification`` / single-particle shift
-     - -0.2525, corr -0.9959
    * - cache at nv = 4: cached vs recomputed
      - 4e-14
    * - cache slicing, 800 excitons down to 400
@@ -271,9 +246,12 @@ Eq. (A4) rotation and the cache fingerprint at ``nv > 1``.
    * - complete C3 residual, single-particle SHG / shift
      - 0.19% / 0.55%
 
-The remaining few percent between the two DC routes is the **model**, not the kernel: 87% of it lies in
-the C3-forbidden sector, and it is 0.7% on the polar components that carry the signal against 28% on the
-weak in-plane block.
+The rows of this table that compared the DC line with the shift current were measured on the former
+excitonic DC branch, which used the shift-current convention, and on the single-particle rectification
+before the 2018 normalisation and sign were adopted. Both outputs are now the causal
+:math:`\sigma(0;\omega,-\omega)` (:ref:`dc-excitonic-rectification`, :ref:`second-order-normalisation`), so
+those rows no longer describe OptiX and were removed (see :doc:`changes`).
+
 
 .. warning:: **Measure C3 on the full tensor, not the in-plane block**
 

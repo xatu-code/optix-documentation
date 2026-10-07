@@ -18,6 +18,17 @@ Errors that stop the run
    k-point (``INFO`` larger than the number of orbitals), or the overlap section of the model file was not
    read as intended. Check that section (:ref:`kw-orthonormal`).
 
+``WARNING (Bandlist): unusual band window``
+   The band list omits the top valence band (offset 0) or the bottom conduction band (offset 1), leaves a gap,
+   or repeats an entry. ``Bandlist`` is a list of offsets, not a range: write every band out, e.g. ``-1 0 1 2``
+   (:ref:`kw-bandlist`). If the window is intentional the warning can be ignored, but expect degenerate pairs
+   to be cut.
+
+``ERROR (parser_input_file): Ex_rectification = shift has been removed.``
+   The excitonic rectification is now the whole causal response; for the shift current use
+   ``Response = shift`` and drop the keyword (:ref:`kw-ex-rect`). ``Ex_rectification = causal`` only prints a
+   note and is ignored.
+
 ``ERROR (parser_input_file): Sp_method = "..." is not recognised.``
    Use ``covariant`` or ``per_band`` (:ref:`kw-sp-method`).
 
@@ -27,11 +38,11 @@ Errors that stop the run
    ``shg_covariant``, ``electrooptic``, ``rectification``, ``general``.
 
 ``ERROR (ome_ex): the exciton envelopes are not in the same basis as the single-particle matrix elements``
-   You asked for an excitonic response with ``OME_sp = none`` and no usable second-order cache. The
-   Eq. (A4) rotation matrices are rebuilt only while ``OME_sp`` is computed and are not stored in the
-   ``.omesp`` file, so the envelopes would be in the wrong basis. Either set ``OME_sp = nonlinear``, or
-   keep ``OME_sp = none`` and supply a matching cache with ``Cache_ome_ex = read``. See
-   :ref:`kw-omeex`.
+   You asked for an excitonic response with ``OME_sp = none``, no usable second-order cache, and an
+   ``.omesp`` written before 2026-10-06, which does not store the Eq. (A4) rotation the exciton envelopes
+   must be carried into. Regenerate the ``.omesp`` once with ``OME_sp = nonlinear`` (``linear`` for
+   ``OME_ex = linear``); later runs can then use ``OME_sp = none``. A matching cache with
+   ``Cache_ome_ex = read`` also works. See :ref:`kw-omeex`.
 
 ``ERROR (get_sigma_general_sp): hbar(w_p+w_q) is exactly zero at a grid point``
    With ``Sp_method = per_band``, a single-particle second-order run landed on :math:`\omega_1 + \omega_2 = 0` with zero broadening.
@@ -141,8 +152,14 @@ Warnings
    every member of each degenerate set.
 
 ``WARNING (ome_sp): the Eq. (A4) rotation is active but the per-k rotation matrices are unavailable``
-   Excitonic matrix elements were requested with ``OME_sp = none``. Compute ``OME_sp`` in the same run;
-   otherwise the excitonic results are wrong.
+   Excitonic matrix elements were requested with ``OME_sp = none`` and an ``.omesp`` from before
+   2026-10-06. The run then stops with the error above; regenerate the ``.omesp`` once.
+
+``WARNING (ome_sp): Nfermi = N does not put the Fermi level in a gap on this mesh``
+   Band ``Nfermi`` reaches higher than band ``Nfermi + 1`` somewhere (or they touch); the message gives
+   both energies. OptiX occupies bands by index, so this filling describes a metal, and second-order
+   responses then contain poles at vanishing transition energy. Check ``Nfermi`` (:ref:`kw-nfermi`). If
+   the filling is intentional, the warning can be ignored.
 
 ``WARNING (exciton_envelopes): ndim = ... but ... lattice direction(s) appear active``
    ``Periodic dimensions`` does not match the number of periodic directions in the Wannier90 file.

@@ -58,6 +58,20 @@ asymmetry into a forbidden component about 4% of the size of an allowed injectio
 model. An independent calculation on the same model gives the same number, so this is the model and not
 OptiX.
 
+Excitonic rectification and shift current differ at bound excitons
+--------------------------------------------------------------------
+
+``Response = rectification`` (causal) and ``Response = shift`` (the convention of the reference paper) agree in
+the independent-particle limit and above the gap, but not at bound excitons: on buckled hBN the symmetric
+real part of the rectification is 0.53 of the shift current, mesh-converged and nearly independent of
+:math:`\eta`. The difference is the exciton-exciton term between distinct bound excitons, which the
+shift-current convention cancels by construction (:ref:`dc-term3`). Which one describes an experiment depends
+on how the bound excitons relax, which neither formula models.
+
+The rectification's forbidden components also converge more slowly with the k-mesh than SHG's, as for the
+electro-optic branch below: on flat hBN the :math:`D_{3h}` residual is 6.6% / 3.1% / 1.3% at 30x30 / 45x45 /
+60x60.
+
 Electro-optic needs a finer k-grid than the other branches
 ----------------------------------------------------------
 
@@ -83,8 +97,8 @@ apply the same caution to the small-:math:`|\omega_2|` strip of a 2D map. See :d
 The anti-diagonal of a 2D map is not a shift current
 -----------------------------------------------------
 
-See :ref:`dc-antidiagonal`. ``Response = rectification`` is the shift current; the map's
-:math:`\omega_2 = -\omega_1` line is close to its **negative**.
+See :ref:`dc-antidiagonal`. The map's :math:`\omega_2 = -\omega_1` line is ``Response = rectification``
+(identical when the map contains those points), which differs from the shift current at bound excitons.
 
 ``shift_sumrule`` is unreliable
 -------------------------------
@@ -92,17 +106,37 @@ See :ref:`dc-antidiagonal`. ``Response = rectification`` is the shift current; t
 Identically ~0 for a two-band model, and it disagrees strongly with ``shift_shiftvector`` on GeS's
 27-band window. It prints a runtime warning. Do not use it outside large band windows.
 
-No excitonic injection current
--------------------------------
+The excitonic injection current depends on the broadening
+------------------------------------------------------------
 
-The DC branch reports the **shift** current on both paths. The **single-particle** injection current is
-recoverable from the output that is already written — it is the :math:`b\leftrightarrow c`
-antisymmetric part of :math:`\mathrm{Im}\,\sigma`, and it is validated by both the symmetry selection
-rule and its :math:`1/\eta` scaling.
+Both rectification outputs carry the injection current in the :math:`b\leftrightarrow c` antisymmetric
+part of :math:`\mathrm{Im}\,\sigma` (:ref:`dc-excitonic-injection`). The single-particle one scales
+exactly as :math:`1/\eta`, as an injection rate times a lifetime :math:`\tau=\hbar/2\eta` should. The
+excitonic one does not: on buckled hBN, :math:`\eta` times its weight changes from 1.04 to 0.58 between
+:math:`\eta` = 0.2 and 0.025 eV, mesh-converged, with a cause not yet established. Its line shape at
+finite :math:`\eta` is a Lorentzian, while the single-particle one is a squared Lorentzian of the same
+weight. Compare the two at the same :math:`\eta`, and quote it.
 
-The **excitonic** injection current is not available, and cannot be recovered by post-processing: the
-excitonic expression carries no denominator that vanishes, so it never produces the factor of
-:math:`\tau` that defines an injection rate. See :ref:`dc-imaginary-part`.
+Single-particle rectification: slow mesh convergence of mixed out-of-plane components
+--------------------------------------------------------------------------------------
+
+The single-particle rectification (and the other single-particle second-order outputs of the covariant
+method) evaluates its k-derivatives analytically at each mesh point. For components with exactly one z index
+(:math:`\sigma^{zxx}`, :math:`\sigma^{xxz}`, ...) the resulting k-sums converge slowly and non-monotonically with
+the mesh when :math:`\eta` is small, because the resonances are sharper than the k-spacing; in-plane components
+and :math:`\sigma^{zzz}` are not affected (symmetry cancels the leftover sums). Measured on non-interacting buckled
+hBN against a real-time propagation that is exact on the same mesh:
+
+* :math:`\eta=0.1` eV, :math:`\sigma^{zxx}/\sigma^{xxx}` at 8.59 eV: 1.035, 1.373, 1.174 on 30x30, 45x45, 60x60, against
+  1.239, 1.271, 1.254 in real time;
+* 30x30 at 8.59 eV: :math:`\sigma^{zxx}` off by -21.5%, -16.2%, -11.3% and :math:`\sigma^{xxz}` by +14.6%, +11.1%,
+  +7.7% at :math:`\eta` = 0.05, 0.1, 0.15 eV; at 0.3 eV all routes agree to 0.1%.
+
+The sum :math:`\sigma^{zxx}+2\sigma^{xxz}` is the same in every evaluation; only its split between the index positions
+converges slowly. The excitonic rectification (method A with mesh-neighbour derivatives) equals the real-time
+result on every mesh (1e-4 at 45x45), also in the non-interacting limit. The same kind of slow, oscillating
+mesh convergence is familiar from the independent-particle linear conductivity at small :math:`\eta`. Converge the
+mesh, or use a larger :math:`\eta`, before quoting a single-particle out-of-plane rectification component.
 
 ``shift_gender`` is a stub
 --------------------------

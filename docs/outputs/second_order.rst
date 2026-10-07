@@ -48,6 +48,17 @@ General / electro-optic / rectification files
 :math:`(\mathrm{Re},\mathrm{Im})\times 27`. Both frequencies are written explicitly, so the file is
 self-describing whether it came from a ratio scan or a 2D map.
 
+For the rectification files (and a 1D ``general`` scan at ``Frequency_ratio = -1``) Re is :math:`b\leftrightarrow c`
+symmetric and Im antisymmetric (the reality of the current). Re is the DC response to linearly polarised
+light, Im the response to circular light, which holds the injection current (:ref:`dc-excitonic-injection`).
+Both files use causal broadening; the shift current in the convention of the reference paper is the
+separate ``shift_*`` file of ``Response = shift``. Until 2026-10-07 the excitonic rectification file held
+the shift current with zero Im columns.
+
+.. code-block:: python
+
+   inj = 0.5*(sigma.imag - sigma.imag.transpose(0, 1, 3, 2))    # injection current, any rectification file
+
 .. code-block:: python
 
    d = np.loadtxt("second_ex_general_lengthgauge_ReS2.dat")
@@ -78,7 +89,7 @@ enough — for the SHG diagonal :math:`\omega_2=\omega_1`:
 
 .. warning::
 
-   The anti-diagonal ``awk '$1 == -$2'`` is **not** the shift current, and is close to its negative.
+   The anti-diagonal ``awk '$1 == -$2'`` is the rectification, **not** the shift current.
    See :ref:`dc-antidiagonal`.
 
 Units and symmetrisation

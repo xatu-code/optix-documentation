@@ -49,6 +49,26 @@ and :math:`V_\text{cell}` is:
 In 2D, the conductivities are therefore **sheet** conductivities: no layer thickness is assumed. To
 get a bulk-like value, divide by an effective thickness of your choice.
 
+.. _out-of-plane-convention:
+
+Out-of-plane (non-periodic) directions
+--------------------------------------
+
+Along a direction without periodicity (z of a 2D model, y and z of a 1D one) there is no :math:`k`
+dependence. The position operator there is an ordinary bounded operator, :math:`z_{nm}=\langle n|Z|m\rangle`,
+built from the model's position matrices, and the interband momentum follows as
+:math:`p^z_{nm}=(m/i\hbar)E_{mn}z_{nm}`. The generalised derivative along such a direction keeps only its
+connection part,
+
+.. math::
+
+   O_{nm;z} = -i\big(\xi^z_{nn}-\xi^z_{mm}\big)\,O_{nm},\qquad \xi^z_{nn}=z_{nn}
+
+(a commutator with the block-diagonal :math:`\xi^z` for degenerate blocks), as in Quintela & Pedersen,
+Phys. Rev. B **107**, 235416 (2023), Eqs. (15) and (24), and Phys. Rev. B **110**, 085433 (2024), Eqs. (30)-(31).
+OptiX applies this in every second-order route, single-particle and excitonic; until 2026-10-07 the
+single-particle shift current dropped it and returned zero for every current along z.
+
 Frequency axis
 ==============
 
@@ -91,8 +111,9 @@ for SHG :math:`\hbar\omega_\Sigma = 2\hbar\omega + 2i\eta`, carrying :math:`2i\e
 :math:`i\eta`. Both the real and the imaginary part of :math:`\sigma` come out, and ``Broadening_type``
 has no effect on these branches.
 
-The DC line :math:`\omega_2 = -\omega_1` is the one place where this convention is modified, for
-reasons set out in :ref:`dc-limit`.
+This includes the DC line :math:`\omega_2 = -\omega_1` (``rectification``). The only route with a different
+convention is ``Response = shift``, the shift current of [EsteveParedes2025]_ (:math:`\omega_q =
+-(\omega+i\eta)`, :math:`\omega_\Sigma = 0`); see :ref:`dc-limit`.
 
 Occupations and spin
 ====================

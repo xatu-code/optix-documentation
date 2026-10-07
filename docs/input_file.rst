@@ -110,10 +110,13 @@ Keyword summary
    * - :ref:`kw-response`
      - always
      - ``absorbance``, ``shift``, ``shift_shiftvector``, ``shift_covariant``, ``shift_sumrule``, ``shift_gender``, ``shg``,
-       ``shg_covariant``, ``electrooptic``, ``rectification``, ``general`` or ``none``.
+       ``shg_covariant``, ``electrooptic``, ``rectification``, ``general``, ``bands`` or ``none``.
    * - :ref:`kw-sp-method`
      - optional
      - Single-particle second-order method: ``covariant`` (default) or ``per_band``.
+   * - :ref:`kw-ex-rect`
+     - obsolete
+     - Ignored if ``causal``; ``shift`` stops (use ``Response = shift``).
    * - :ref:`kw-energy`
      - always
      - Frequency window, broadening and number of points.
@@ -132,6 +135,12 @@ Keyword summary
    * - :ref:`kw-cache`
      - optional
      - Cache the second-order excitonic matrix elements on disk.
+   * - :ref:`kw-kpath`
+     - optional
+     - Path for the band structure: vertices in reduced coordinates, each with the number of points to the next.
+   * - :ref:`kw-kpath-labels`
+     - optional
+     - One label per ``Kpath`` vertex.
 
 "sp only" means the keyword is used when ``Xatu_interface`` is ``false``. With Xatu, the same
 information is read from the exciton files instead.
@@ -297,6 +306,14 @@ names the offending entry.
 Only transitions between the listed bands are included, so the spectrum is only meaningful up to the
 energy where bands outside the window start to contribute. Widen the list to push that limit up.
 
+It is a **list, not a range**: ``-1 2`` selects two bands (the second valence and the second conduction band)
+and skips both frontier bands; four bands are ``-1 0 1 2``. OptiX prints the resolved window,
+``Band window (offset from Nfermi -> band): -1->25 0->26 1->27 2->28``, and warns
+(``WARNING (Bandlist): unusual band window``) when the list omits offset 0 or 1, leaves a gap, or repeats an
+entry. The same check applies to the band list of a Xatu ``.states`` file. Such a window is allowed, but it
+cuts degenerate pairs; on MoS\ :sub:`2` the window ``-1 2`` gave a rectification dominated by a
+symmetry-forbidden component.
+
 .. tip::
 
    Keep degenerate bands together. If a set of degenerate bands straddles the edge of ``Bandlist``,
@@ -342,6 +359,11 @@ zero temperature: bands in ``Bandlist`` with index :math:`\le 0` have occupation
 occupation 0.
 
 With Xatu, this **must match** the filling passed to ``xatu --w90``.
+
+``Nfermi`` must put the Fermi level in a gap **at every k-point**: occupations follow the band index, not
+the energy. If band ``Nfermi`` reaches higher than band ``Nfermi + 1`` anywhere on the mesh, or the two
+touch, OptiX prints a ``WARNING`` with both energies. Such a filling describes a metal, and the
+second-order responses then contain poles at vanishing transition energy (on GeS, ``Nfermi = 21`` turns :math:`\sigma^{xyy} = 135` into 10566; see :doc:`troubleshooting`).
 
 .. _kw-cutoff:
 
@@ -453,19 +475,18 @@ single-particle matrix elements. Only relevant when ``Xatu_interface`` is ``true
 
    * The excitonic shift current needs ``OME_ex = nonlinear`` **in the same run**, because the
      inter-exciton elements are not kept in a file. Use ``Cache_ome_ex`` to avoid recomputing them.
-   * When ``OME_ex`` is ``linear`` or ``nonlinear``, ``OME_sp = none`` is **refused** and the run
-     stops. The exciton envelopes must be carried into the same band gauge as the single-particle
-     states, and the per-k rotation matrices that do it are rebuilt only while ``OME_sp`` is being
-     computed — they are not stored in the ``.omesp`` file. With ``OME_sp = none`` the two would sit in
-     different bases inside every near-degenerate multiplet, and the error is :math:`O(1)`: on In\ :sub:`2`\ Se\ :sub:`3` it
-     moves the excitonic SHG by 13% of the largest tensor component and by more than 100% of several
-     smaller ones.
+   * ``OME_ex = linear`` or ``nonlinear`` may be combined with ``OME_sp = none``. The exciton envelopes
+     must be carried into the same band basis as the single-particle states, using per-k rotation
+     matrices built while ``OME_sp`` is computed; the ``.omesp`` file stores them, together with the
+     exciton-window states the covariant :math:`X_{NN'}` needs (since 2026-10-06). On
+     In\ :sub:`2`\ Se\ :sub:`3`, ``OME_sp = none`` then reproduces the full calculation to
+     :math:`4\times10^{-16}` (SHG and absorbance), in 2 s instead of 14 s.
 
-     The **one exception** is a :ref:`kw-cache` *hit*, which supplies the excitonic matrix elements
-     directly and never touches the envelopes. ``OME_sp = none`` together with ``Cache_ome_ex = read``
-     is therefore valid, and is the intended fast path for scanning several ``Response`` branches over
-     one set of matrix elements. A cache *miss* under the same settings stops rather than quietly
-     recomputing in a mismatched basis.
+     An ``.omesp`` written by an earlier version lacks them, and the run **stops** rather than mixing
+     bases: the error would be :math:`O(1)` (on In\ :sub:`2`\ Se\ :sub:`3`, 13% of the largest SHG
+     component and more than 100% of several smaller ones). Regenerate the file once with ``OME_sp`` set,
+     or use a :ref:`kw-cache` *hit*, which supplies the excitonic matrix elements directly and never
+     touches the envelopes.
 
 .. _kw-response:
 
@@ -525,17 +546,23 @@ Which optical response to compute:
    most sensitive to the k-mesh; see :doc:`theory/second_order`.
 
 ``rectification``
-   Optical rectification, :math:`\sigma^{abc}(0;\omega,-\omega)`, the DC limit. The excitonic result
-   is the shift current, by a second route. The single-particle result also contains the off-resonant
-   terms and the injection current. On resonance it equals the shift current, and the rest vanishes as
-   :math:`\eta\to0`. Read :ref:`dc-limit` for the conventions and why the anti-diagonal of a 2D map is
-   different.
+   Optical rectification, the whole :math:`\sigma^{abc}(0;\omega,-\omega)` with causal broadening, on both
+   paths: the symmetric real part and, in the antisymmetric imaginary part, the injection current. It is
+   continuous with the anti-diagonal of a 2D map. In the independent-particle limit its real part equals
+   the shift current on resonance, plus off-resonant terms that vanish as :math:`\eta\to0`; with bound
+   excitons it differs from the shift current (buckled hBN: 0.53 of it). For the shift current itself use
+   ``shift``. Read :ref:`dc-limit`.
 
 ``general``
    The two-frequency response :math:`\sigma^{abc}(\omega_1+\omega_2;\omega_1,\omega_2)` at an
    arbitrary ratio set by :ref:`kw-ratio`, or a full two-dimensional map when :ref:`kw-energy2` is
    present. ``Frequency_ratio`` of 1, 0 and -1 reproduce ``shg``, ``electrooptic`` and
    ``rectification`` respectively.
+
+``bands``
+   Write the band structure (:doc:`outputs/bands`) and stop, before any matrix element is computed. Use it to
+   choose ``Nfermi`` and ``Bandlist`` for a new model. Needs only the model, ``Periodic dimensions``,
+   ``Xatu_interface = false``, ``Ncells`` (any value), ``Bandlist``, ``Nfermi`` and, optionally, :ref:`kw-kpath`.
 
 ``none``
    Compute no response. Useful to only produce the matrix-element files (see :doc:`workflows`).
@@ -576,6 +603,17 @@ On models without degeneracies the two agree, e.g. hBN to :math:`10^{-10}` (SHG)
 stage and writes a larger ``.omesp``. With ``OME_sp = none``, the ``.omesp`` read back must come from a
 ``covariant`` run; otherwise OptiX stops and says so. The explicit names ``shift_shiftvector`` and
 ``shift_covariant`` ignore this keyword. Any value other than the two above stops the program.
+
+.. _kw-ex-rect:
+
+Ex_rectification
+----------------
+
+**Obsolete since 2026-10-07.** The excitonic rectification is always the whole causal
+:math:`\sigma^{abc}(0;\omega,-\omega)`, injection current included (:ref:`dc-excitonic-rectification`); the shift
+current in the convention of the reference paper is ``Response = shift``. ``Ex_rectification = causal`` is
+accepted and ignored, with a note in the log. ``Ex_rectification = shift`` stops the run and points to
+``Response = shift``, so an old input never silently returns a different quantity.
 
 .. _kw-energy:
 
@@ -628,10 +666,9 @@ branches. Any other value is a sum-frequency response.
 
 .. note::
 
-   At :math:`r = -1` OptiX switches to the DC convention described in :ref:`dc-limit` — the same
-   convention ``Response = rectification`` uses. This happens only for a **one-dimensional** scan; a 2D
-   map does not switch. That is deliberate, and it is the single most important thing to know before
-   reading a map along its anti-diagonal.
+   At :math:`r = -1` the scan is ``Response = rectification``: causal broadening as everywhere, evaluated
+   with Eq. (B1a) and the bare exciton-exciton current in its term 3 (:ref:`dc-excitonic-rectification`).
+   It is not the shift current; that is ``Response = shift``.
 
 .. _kw-energy2:
 
@@ -652,13 +689,57 @@ The output has :math:`n_w\times n_{wb}` rows with :math:`\omega_1` as the slow i
 :doc:`outputs/second_order`. Cost scales with the product, so a 320x480 map is 153 600 frequency pairs.
 
 :math:`\omega_2` may be negative. If the grid contains a point with
-:math:`\omega_1 + \omega_2 = 0`, OptiX evaluates the **whole** map with Eq. (B1a) (method A), because
-Eq. (B1b)'s prefactor vanishes there; the log says which form was used.
+:math:`\omega_1 + \omega_2 = 0`, OptiX evaluates the **whole** map with Eq. (B1a) (method A, term 3 on the
+bare exciton-exciton current), and its anti-diagonal then equals ``Response = rectification`` point by
+point; the log says which form was used.
 
 .. warning::
 
    The line :math:`\omega_2 = -\omega_1` of a map is **not** the shift current. See
    :ref:`dc-antidiagonal`.
+
+.. _kw-kpath:
+
+Kpath
+-----
+
+.. code-block:: text
+
+   # Kpath
+    0.00000000  0.00000000  0.00000000  150
+    0.50000000  0.00000000  0.00000000  100
+    0.33333333  0.33333333  0.00000000  150
+    0.00000000  0.00000000  0.00000000  1
+
+Optional. The path of the band structure written to ``bands_<material>.dat``, one vertex per line: three
+**reduced coordinates** along the reciprocal lattice vectors (in the order of the lattice vectors of the
+``_tb.dat`` file) and the **number of points** from this vertex to the next. The last vertex takes ``1`` to be
+included (``0`` leaves it out). A count of ``1`` on an intermediate vertex writes that vertex alone and jumps to
+the next one, so a path can be broken (e.g. ``... K 1`` then ``M ...``); the path length does not advance across
+the jump. The block ends at the next ``#`` line, a blank line or the end of the file.
+
+Reduced coordinates depend on the choice of lattice vectors: for a hexagonal lattice K is
+:math:`(\tfrac13,\tfrac13)` when the reciprocal vectors are 60 degrees apart and :math:`(\tfrac23,\tfrac13)` when they
+are 120 degrees apart (as in the ``hBN_tb.dat`` of the examples). The file header lists the reduced coordinates of
+every vertex, and the default path finds K itself.
+
+Without ``Kpath`` OptiX uses a default for the lattice: :math:`\Gamma`-M-K-:math:`\Gamma` for a hexagonal 2D lattice,
+:math:`\Gamma`-X-S-Y-:math:`\Gamma` for any other 2D lattice (X, Y, S at :math:`\tfrac12` of the reciprocal vectors and
+their sum), the same plus :math:`\Gamma`-Z in 3D, and :math:`\Gamma`-X in 1D, with about 300 points in all.
+
+.. _kw-kpath-labels:
+
+Kpath_labels
+------------
+
+.. code-block:: text
+
+   # Kpath_labels
+   G M K G
+
+Optional. One label per ``Kpath`` vertex, separated by spaces; they are written to the file header (and used by
+``tools/plot_bands.py``, which draws ``G`` as :math:`\Gamma`). With a different number of labels than vertices they
+are ignored with a warning.
 
 .. _kw-broadening:
 

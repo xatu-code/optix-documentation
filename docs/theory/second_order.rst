@@ -69,15 +69,17 @@ the shift current to have its sign on resonance. Measured at :math:`\eta = 0.15`
 * SHG, single-particle (both methods) and excitonic in the non-interacting limit: :math:`\sim10^{-4}`;
 * single-particle rectification: 0.2%;
 * ``general`` at :math:`(\hbar\omega_1,\hbar\omega_2) = (6, 3)` eV: :math:`10^{-4}`;
-* shift current and excitonic rectification: equal to the real-time DC current on resonance (1–2%), with
-  the same sign. Below the gap they leave out an off-resonant part that vanishes as :math:`\eta\to0`.
+* shift current: equal to the real-time DC current on resonance (1–2%), with the same sign. Below the gap
+  it leaves out an off-resonant part that vanishes as :math:`\eta\to0`;
+* excitonic rectification: in the non-interacting limit equal to the single-particle rectification to
+  :math:`5\times10^{-4}` (``make check_sp_shift``), and hence to the real-time current.
 
 Bookkeeping, for anyone reading the source: the kernels of [Taghizadeh2017]_ and [Taghizadeh2018]_
 already contain the electron charge, and the writers multiply them by :math:`-1` (the electron charge
 cubed) only to undo the shared :math:`e^3=-1` in ``constants_math::sigma2_au_to_si``. The shift
-kernels follow npj Eq. (9), written with :math:`e=1`, and take that factor as it is. So does the
-excitonic DC branch (:ref:`dc-limit`), which reproduces the excitonic shift current to
-:math:`3.4\times10^{-9}`.
+kernels follow npj Eq. (9), written with :math:`e=1`, and take that factor as it is. The excitonic
+``rectification`` is a causal output like ``shg`` and ``general`` and carries the same :math:`-1`
+(:ref:`dc-excitonic-rectification`).
 
 Broadening convention
 =====================
@@ -95,8 +97,10 @@ For SHG this means :math:`\hbar\omega_\Sigma = 2\hbar\omega + 2i\eta`, not
 :math:`2\hbar\omega + i\eta`. Building :math:`\omega_\Sigma` as an independent frequency with a single
 :math:`\eta` breaks the equality between the two evaluation methods below.
 
-The one exception is the DC line :math:`r = -1`, which uses its own convention for a reason set out in
-:ref:`dc-limit`. Read that page before interpreting anything at or near :math:`\omega_2 = -\omega_1`.
+This holds on the DC line :math:`r = -1` too: ``rectification`` is the whole causal
+:math:`\sigma(0;\omega,-\omega)`, with :math:`\hbar\omega_\Sigma = 2i\eta`. The one route with a different
+convention is ``Response = shift``, which evaluates the shift current of [EsteveParedes2025]_ with
+:math:`\omega_q = -(\omega + i\eta)` and :math:`\omega_\Sigma = 0` (:ref:`dc-limit`).
 
 Independent particles
 =====================
@@ -159,9 +163,11 @@ used for the current:
 :math:`X_N` (ground-state-to-exciton) and :math:`X_{NN'}` (exciton-to-exciton), and it is the production
 route for every branch except the DC line. Its prefactor is :math:`i\hbar\omega_2`.
 
-**Method A, Eq. (B1a)** — the Heisenberg-momentum observable :math:`\Pi`. OptiX uses it exactly where
-Eq. (B1b)'s prefactor :math:`i\hbar\omega_2` vanishes, i.e. wherever :math:`\omega_2 = 0` is on the
-frequency grid. That covers ``rectification`` and any 2D map whose range includes the anti-diagonal.
+**Method A, Eq. (B1a)** — the Heisenberg-momentum observable :math:`\Pi`. OptiX uses it where the DC line
+is on the frequency grid: ``rectification`` and any 2D map containing :math:`\omega_1+\omega_2=0` points.
+There its term 3, the exciton populations and coherences, reads the bare exciton-exciton current instead
+of :math:`\Pi_{nm}`, so that the injection current and the non-interacting limit are resolved on the mesh
+(:ref:`dc-excitonic-rectification`).
 
 .. important::
 
@@ -187,7 +193,7 @@ and converges from further away.
 Symmetrisation
 ==============
 
-Off the DC line, OptiX averages over the pair swap
+OptiX averages over the pair swap
 :math:`(\alpha,\omega_p)\leftrightarrow(\beta,\omega_q)`,
 
 .. math::
@@ -198,8 +204,9 @@ which is the intrinsic permutation symmetry the physical tensor must have. The r
 ordering each and are deliberately *not* symmetric on their own, so the averaged tensor — not the raw
 one — is what OptiX writes and what should be compared with symmetry predictions.
 
-On the DC line the swap is replaced by an index-only symmetrisation at fixed frequencies; see
-:ref:`dc-limit`.
+This includes the DC line, where both orderings are evaluated explicitly (the swapped one is not the complex
+conjugate of the first there); the averaged tensor then has a :math:`b\leftrightarrow c` symmetric real and
+an antisymmetric imaginary part, as the reality of the current requires (:ref:`dc-excitonic-rectification`).
 
 Electro-optic: check convergence before trusting it
 ===================================================

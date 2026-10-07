@@ -5,8 +5,141 @@ Recent changes
 Changes that affect results, output files or how you drive OptiX. Ordered newest first. Where a change
 alters numbers that earlier runs produced, the size of the difference is stated.
 
+2026-10-07
+==========
+
+Faster single-particle matrix elements and second-order kernel
+--------------------------------------------------------------
+
+Two hot spots rewritten; the physics is unchanged.
+
+* **Bloch sums.** :math:`H(\mathbf k)`, :math:`S(\mathbf k)`, their k-derivatives and the position kernel are now
+  matrix products over the lattice vectors, evaluated for a k-point and its finite-difference neighbours in one
+  pass over the hoppings, and reused by the routines that need them (the centre was rebuilt four times and each
+  neighbour twice per k-point). These sums took 91% of a single-particle second-order run on MoS\ :sub:`2`.
+* **Covariant second-order kernel** (``Sp_method = covariant``: ``shg``, ``electrooptic``, ``rectification``,
+  ``general``): frequencies are processed in chunks of 64 with the frequency as the innermost, vectorised index.
+  Identical results (:math:`4\times10^{-14}`), and the work arrays no longer grow with the number of frequencies.
+
+Measured, 32 threads: MoS\ :sub:`2` 60x60 SHG 9.9 s :math:`\to` 2.5 s (one thread 112 s :math:`\to` 25 s),
+covariant shift 30x30 3.6 :math:`\to` 1.2 s, buckled hBN rectification (2000 frequencies) 1.8 :math:`\to` 0.6 s,
+GeS 17-band SHG 3.0 :math:`\to` 1.5 s, SnTe (non-orthonormal) shift 28 :math:`\to` 17 s.
+**Numbers change only at round-off level**, amplified by the :math:`10^{-6}` finite-difference step: relative
+:math:`10^{-11}` to :math:`10^{-10}` on hBN, up to :math:`5\times10^{-9}` on MoS\ :sub:`2`, GeS and SnTe
+(near-degenerate bands); excitonic outputs :math:`5\times10^{-15}`; band structures :math:`10^{-14}`. The
+diagnostic ``shift_vector.dat`` of the per-band shift-vector formula moves by up to :math:`2\times10^{-3}` on
+MoS\ :sub:`2` and SnTe, where its 50 bohr clip flips on round-off (on hBN :math:`2\times10^{-11}`).
+
+Band structure along a chosen k-path; ``Response = bands``
+----------------------------------------------------------
+
+``bands_<material>.dat`` now follows the new :ref:`kw-kpath` block (vertices in reduced coordinates, each with the
+number of points to the next; :ref:`kw-kpath-labels` names them). Without it the default path depends on the
+lattice: :math:`\Gamma`-M-K-:math:`\Gamma` for hexagonal 2D lattices (K is found as the zone corner), :math:`\Gamma`-X-S-Y-:math:`\Gamma`
+otherwise, plus Z in 3D. **The default path changes**: it was :math:`\tfrac12\mathbf G_1\to\Gamma\to\tfrac12\mathbf G_2`,
+which missed K on hexagonal lattices. The file gains a header (vertex labels and positions, the ``Bandlist``
+window, VBM, CBM and gaps along the path); the data columns are unchanged and ``kz`` is now set (it was
+undefined). ``Response = bands`` writes the band structure and stops. New ``tools/plot_bands.py`` and test
+``make check_bands``.
+
+Warning for an unusual band window
+----------------------------------
+
+OptiX now prints the resolved band window (offset from Nfermi and band number) and warns when ``Bandlist`` (or
+the band list of a Xatu ``.states`` file) omits the top valence or bottom conduction band, leaves a gap, or
+repeats an entry. ``Bandlist`` is a list, not a range: ``-1 2`` is two bands. **No computed number changes.**
+New test ``make check_bandlist_guard``.
+
+Sign of the injection current, and of every b-c antisymmetric two-frequency part
+---------------------------------------------------------------------------------
+
+Term 3 of Eq. (A9b) of Taghizadeh & Pedersen (the exciton populations and coherences) pairs :math:`U_n` with the
+field at :math:`\omega_q` and :math:`U^*_m` with the field at :math:`\omega_p`. The excitonic methods A and B and the
+single-particle covariant method had the two field indices the other way round. Only the part antisymmetric
+under :math:`b\leftrightarrow c` depends on this, so shift currents, SHG and every symmetric (linear-polarisation)
+component are **unchanged** (bit-identical). What changes:
+
+* the **injection current** (antisymmetric Im of ``rectification``, single-particle covariant and excitonic): it had
+  the wrong sign. Against a real-time propagation with circular light (non-interacting buckled hBN, 8 eV,
+  :math:`\eta=0.3` eV): real time 1.763; before -1.686 (single-particle) and -1.455 (excitonic); now 1.756 and 1.761.
+  ``Sp_method = per_band`` (Eq. A3a) already had the right sign and is unchanged.
+* the :math:`b\leftrightarrow c` antisymmetric part of ``general`` and ``electrooptic`` outputs (single-particle
+  covariant and excitonic), which is physical when :math:`\omega_1\neq\omega_2`.
+
+New test ``make check_out_of_plane``.
+
+Single-particle shift current along z
+-------------------------------------
+
+The single-particle shift current (``Response = shift``, covariant) was **zero for every current along a
+non-periodic direction** (z of a 2D model: :math:`\sigma^{zxx}`, :math:`\sigma^{zzz}`, ...): the generalised derivative
+along z, which has no :math:`k_z` part but keeps the connection term (:ref:`out-of-plane-convention`), was dropped.
+It is now included: on non-interacting buckled hBN :math:`\sigma^{zxx}` and :math:`\sigma^{zzz}` equal the excitonic
+shift-current route to :math:`2\times10^{-3}` and :math:`5\times10^{-3}` of their maxima. In-plane components and
+models without out-of-plane response (flat hBN, MoS\ :sub:`2`: the forbidden odd-z components stay at
+:math:`1.5\times10^{-4}` of the in-plane maximum) are unchanged.
+
+Excitonic rectification is the whole causal response; the shift current is ``Response = shift``
+--------------------------------------------------------------------------------------------------
+
+``Response = rectification`` (and ``general`` at ``Frequency_ratio = -1``) now evaluates the whole
+:math:`\sigma^{abc}(0;\omega,-\omega)` with the causal broadening of every other branch, method A of
+Taghizadeh & Pedersen (2018) with the bare exciton-exciton current in its term 3, both field orderings
+explicit (:ref:`dc-excitonic-rectification`). It is continuous with the 2D map: a map containing
+:math:`\omega_1+\omega_2=0` points uses the same evaluation, so its anti-diagonal equals the rectification.
+The shift current in the convention of the reference paper stays ``Response = shift``, unchanged.
+
+**What changes in** ``second_ex_rectification_lengthgauge_<material>.dat``:
+
+* **Im columns**, zero until now, hold the antisymmetric response to circular light, which contains the
+  excitonic **injection current** (:ref:`dc-excitonic-injection`). Non-interacting limit: integrated weight
+  0.99 of the single-particle injection current; real excitons: mesh-converged at 75x75.
+* **Re columns** were the shift current; they are now the causal response. In the non-interacting limit
+  they equal the single-particle rectification (:math:`5\times10^{-4}`), including the off-resonant part the
+  old branch left out. With bound excitons they differ from the shift current: on buckled hBN the
+  least-squares ratio is 0.53 (mesh-converged), the first bright exciton is halved and a strong peak appears
+  at the next bright doublet (:ref:`dc-term3`). Above the gap the two agree.
+* 2D maps that contain :math:`\omega_1+\omega_2=0` points change in their difference-frequency half, where
+  the exciton-exciton term carries most of the response (term 3 now on the bare current).
+* ``Ex_rectification`` is obsolete: ``causal`` is ignored with a note, ``shift`` stops and points to
+  ``Response = shift``.
+* The excitonic rectification step costs about twice as much (two method-A passes instead of one); the
+  exciton matrix-element stage is unchanged.
+
+New test ``make check_ex_rectification``; ``make check_sp_shift`` and ``make run_test_second_symmetry``
+updated.
+
 2026-10-06
 ==========
+
+Excitonic runs can reuse the single-particle matrix elements (``OME_sp = none``)
+--------------------------------------------------------------------------------
+
+The ``.omesp`` files now store the Eq. (A4) basis of the exciton window, and the nonlinear one also the
+exciton-window states the covariant :math:`X_{NN'}` needs (:doc:`outputs/matrix_elements`). An excitonic
+run (``OME_ex = linear`` or ``nonlinear``) may therefore use ``OME_sp = none``; until now it had to recompute
+the single-particle matrix elements, because those quantities were rebuilt only while ``OME_sp`` was being
+computed. Measured on In\ :sub:`2`\ Se\ :sub:`3` (200 excitons): identical to the full calculation to
+:math:`4\times10^{-16}`, SHG in 2 s instead of 14 s. **No computed number changes.** An ``.omesp`` written
+before this date lacks the basis; with it the excitonic run still stops and asks you to regenerate the file
+once. The nonlinear file's tail now starts with a tag and a flags word; older files remain readable.
+
+Warning for a metallic filling
+------------------------------
+
+OptiX now warns when ``Nfermi`` does not put the Fermi level in a gap on the k-mesh (band ``Nfermi``
+reaching above band ``Nfermi + 1`` anywhere, or the two touching), with both energies. Occupations follow
+the band index, so such a filling describes a metal, and second-order responses then contain poles at
+vanishing transition energy: on GeS, ``Nfermi = 21`` turns :math:`\sigma^{xyy} = 135` into 10566. **No
+computed number changes.**
+
+New: ``Ex_rectification = causal`` (opt-in)
+-------------------------------------------
+
+The excitonic rectification can now be evaluated with the causal prescription of the single-particle path
+(:ref:`kw-ex-rect`), which includes the off-resonant part. It is opt-in because its resonant part converges
+slowly with the k-mesh (non-interacting hBN, :math:`\eta = 0.15` eV: 98% / 59% / 35% off at 30x30 / 45x45 /
+60x60); OptiX warns when it is used. **The default, ``shift``, is unchanged.**
 
 Input errors now fail with exit code 1
 --------------------------------------

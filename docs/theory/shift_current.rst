@@ -96,10 +96,12 @@ of these runs.
 Relation to ``rectification``
 =============================
 
-``Response = rectification`` computes the same physical quantity by a different route — the DC branch of
-the general two-frequency kernel, Eq. (B1a) of [Taghizadeh2018]_ — and agrees with the expressions above
-to :math:`3.4\times10^{-9}` on hBN. Which route to prefer, why the two agree, and why the anti-diagonal
-of a two-dimensional map does **not**, are set out in :ref:`dc-limit`.
+``Response = rectification`` is the general two-frequency response, Eq. (B1a) of [Taghizadeh2018]_, on the
+DC line with the causal broadening of every other branch: the whole :math:`\sigma(0;\omega,-\omega)`,
+injection current included. In the non-interacting limit, and above the gap, its symmetric real part equals
+the shift current on resonance; at bound excitons it differs, because the exciton-exciton term that the
+convention used here cancels survives with causal broadening (buckled hBN: 0.53 of the shift current). See
+:ref:`dc-limit`.
 
 Non-interacting limit
 =====================
