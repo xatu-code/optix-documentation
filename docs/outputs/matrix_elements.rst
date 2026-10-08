@@ -38,8 +38,8 @@ ome_nonlinear_sp_<material>.omesp
 Written by ``OME_sp = nonlinear``. **Unformatted binary stream** (native endianness, 8-byte reals).
 Besides energies and velocities, it contains the Berry connections, the shift vectors
 :math:`R^{a,b}_{ij}`, the sum-rule generalised derivatives :math:`(r^b_{ij})_{;k^a}` and the
-k-derivatives of :math:`|v^b_{ij}|`; with a covariant method (:ref:`kw-sp-method`, ``shift_covariant``)
-also the data its generalised derivative needs. In order:
+k-derivatives of :math:`|v^b_{ij}|`, and (since 2026-10-08, for every second-order ``Response``) the data
+the generalised derivative of both covariant methods needs, so one file serves every branch. In order:
 
 .. code-block:: text
 
@@ -60,11 +60,11 @@ also the data its generalised derivative needs. In order:
    complex128 a4_W (Nk, Nb, Nb)
    # flags bit 1: the exciton-window states for the covariant X_NN'
    complex128 c (Norb, Nb, Nk),  S c (Norb, Nb, Nk),  c^H A c (Nk, 3, Nb, Nb)
-   # flags bit 2: a covariant method was requested (Sp_method = covariant, or Response = shift / shift_covariant)
+   # flags bit 2: block-covariant shift data (every OME_sp = nonlinear run since 2026-10-08)
    complex128 block-covariant generalised derivative (Nk, 3, 3, Nb, Nb)
    complex128 velocity in the plain eigenbasis (Nk, 3, Nb, Nb)
    int32      block label of each band (Nk, Nb)
-   # flags bit 3: the covariant SHG / electro-optic / rectification / general
+   # flags bit 3: covariant SHG / electro-optic / rectification / general data (likewise)
    complex128 neighbour-to-centre block transport (Nk, 6, Nb, Nb)
    complex128 off-block positions at the 7 stencil points (Nk, 7, 3, Nb, Nb)
    real64     energies at the 7 stencil points (Nk, 7, Nb)
@@ -116,5 +116,7 @@ ome_second_ex_<material>.omeex2
 
 The second-order exciton cache written by ``Cache_ome_ex``. Unformatted binary stream with a
 fingerprinting header (format tag ``OPTICX-OMEEX2``, material name, k-point and band counts, exciton
-energies), followed by the ground-state and inter-exciton position and velocity matrix elements. The
-file is meant to be read by OptiX only; see :ref:`kw-cache`.
+energies), followed by the ground-state and inter-exciton position and velocity matrix elements. It is
+read back by any second-order ``Response`` with ``Cache_ome_ex = read`` or ``readwrite``, with
+``OME_ex = nonlinear`` (recomputed on a miss) or ``none`` (a miss stops the run). The file is meant to be
+read by OptiX only; see :ref:`kw-cache`.

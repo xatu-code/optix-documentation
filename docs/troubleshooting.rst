@@ -42,7 +42,7 @@ Errors that stop the run
    ``.omesp`` written before 2026-10-06, which does not store the Eq. (A4) rotation the exciton envelopes
    must be carried into. Regenerate the ``.omesp`` once with ``OME_sp = nonlinear`` (``linear`` for
    ``OME_ex = linear``); later runs can then use ``OME_sp = none``. A matching cache with
-   ``Cache_ome_ex = read`` also works. See :ref:`kw-omeex`.
+   ``Cache_ome_ex = read`` also works (with ``OME_ex = nonlinear`` or ``none``). See :ref:`kw-omeex`.
 
 ``ERROR (get_sigma_general_sp): hbar(w_p+w_q) is exactly zero at a grid point``
    With ``Sp_method = per_band``, a single-particle second-order run landed on :math:`\omega_1 + \omega_2 = 0` with zero broadening.
@@ -65,12 +65,21 @@ Errors that stop the run
 
 ``ERROR (sigma_second_sp): the .omesp file has no covariant second-order data``
    ``OME_sp = none`` read an ``.omesp`` that lacks what ``Sp_method = covariant`` needs for SHG,
-   electro-optic, rectification or ``general``: it was written by an older version, for another
-   ``Response``, or with ``Sp_method = per_band``. Run once with ``OME_sp = nonlinear``.
+   electro-optic, rectification or ``general``. Since 2026-10-08 every ``OME_sp = nonlinear`` run stores it,
+   so the file was written by an older version (before that, a ``shift`` run did not store it). Run once
+   with ``OME_sp = nonlinear``; the new file serves every second-order ``Response``.
 
 ``ERROR (sigma_second_sp): the .omesp file has no block-covariant derivative``
-   The same for ``Response = shift`` / ``shift_covariant``: the ``.omesp`` must come from a run that
-   computed the covariant shift current.
+   The same for ``Response = shift`` / ``shift_covariant``, with an ``.omesp`` from an older version.
+
+``ERROR (ome): OME_ex = none on a second-order run reads the excitonic matrix elements from the``
+   ``Cache_ome_ex`` file. Set ``Cache_ome_ex = read`` (or ``readwrite``) next to the cache, or compute the
+   elements with ``OME_ex = nonlinear``.
+
+``ERROR (ome_ex): OME_ex = none reads the excitonic matrix elements from ome_second_ex_<material>.omeex2``
+   The cache is absent, truncated, or holds fewer excitons than ``Exciton_cutoff`` (a mismatch of the
+   system stops earlier with its own message). Create it once with ``OME_ex = nonlinear`` and
+   ``Cache_ome_ex = write`` or ``readwrite``.
 
 ``ERROR (sigma_second_sp): the .omesp file has no derivative of |v|``
    The nonlinear matrix-element file was written by an older OptiX version. Regenerate it with
@@ -83,8 +92,9 @@ Errors that stop the run
    ``.eigval`` lists energies.
 
 ``ERROR (sigma_second_ex): xme_ex_inter/vme_ex_inter not populated``
-   An excitonic shift current was requested without ``OME_ex = nonlinear`` in the same run (or without a
-   valid cache). See :ref:`kw-omeex`.
+   An excitonic second-order response was requested with ``OME_ex = linear``, which does not build the
+   inter-exciton elements. Use ``OME_ex = nonlinear``, or ``none`` with ``Cache_ome_ex = read``. See
+   :ref:`kw-omeex`.
 
 ``ERROR (read_ome_ex_second): ... was written for a DIFFERENT system`` / ``cached exciton energies differ``
    The ``.omeex2`` cache belongs to another calculation. Delete it or move it aside.
@@ -122,8 +132,9 @@ Segmentation fault early in a run, especially for large meshes
 The run is slow
    * Check that ``OMP_NUM_THREADS`` is set to the number of physical cores.
    * Compile without ``-fcheck=all`` for production runs (see :doc:`installation`).
-   * Split the calculation and reuse matrix elements (see :doc:`workflows`). For excitonic shift
-     currents, use ``Cache_ome_ex``.
+   * Split the calculation and reuse matrix elements (see :doc:`workflows`). For excitonic second-order
+     runs, write ``Cache_ome_ex`` once, then run every ``Response`` with ``OME_sp = none``,
+     ``OME_ex = none`` and ``Cache_ome_ex = read``.
 
 Messages that are not errors
 ============================

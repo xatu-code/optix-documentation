@@ -99,8 +99,8 @@ Keyword summary
      - always
      - Number of filled bands.
    * - :ref:`kw-cutoff`
-     - excitonic only
-     - Number of exciton states used.
+     - excitonic only, optional
+     - Number of exciton states used (default: all in the Xatu files).
    * - :ref:`kw-omesp`
      - always
      - Single-particle matrix elements: ``linear``, ``nonlinear`` or ``none``.
@@ -379,6 +379,11 @@ Number of exciton states, lowest in energy first, read from the Xatu files and i
 excitonic response. The spectrum is converged only up to roughly the energy of the highest state
 included. Used only when ``Xatu_interface`` is ``true``.
 
+Optional. Without it OptiX uses every exciton Xatu wrote, and says so in the log
+(``Exciton_cutoff not given: using all 900 excitons in the Xatu files``). The count is the third line of
+the ``.eigval`` file; the first line of the ``.states`` file is the size of the exciton basis, which is the
+same number only when Xatu wrote every state. Mind the cost (below) before running a large file in full.
+
 It cannot exceed the number of states Xatu wrote. Asking for more stops the run and tells you how many
 are actually there:
 
@@ -421,9 +426,11 @@ and written to disk:
 ``nonlinear``
    Everything in ``linear``, plus the quantities second-order responses need: Berry connections, shift
    vectors, generalised derivatives, k-derivatives of :math:`|v|`, and the gauge-fixed
-   (parallel-transported) complex generalised derivative of :math:`v` that Eq. (A3a) needs. Required for
-   every ``shift_*`` response and for ``shg``, ``electrooptic``, ``rectification`` and ``general``.
-   Written to the binary file ``ome_nonlinear_sp_<material>.omesp``.
+   (parallel-transported) complex generalised derivative of :math:`v` that Eq. (A3a) needs, and the
+   block-covariant data of both covariant methods. Required for every ``shift_*`` response and for
+   ``shg``, ``electrooptic``, ``rectification`` and ``general``. Written to the binary file
+   ``ome_nonlinear_sp_<material>.omesp``, which serves **every** second-order ``Response`` afterwards
+   with ``OME_sp = none``, whichever ``Response`` wrote it.
 
 ``none``
    Compute nothing, and read the matrix elements from the file left by a previous run in the same
@@ -463,18 +470,22 @@ single-particle matrix elements. Only relevant when ``Xatu_interface`` is ``true
    ``ome_linear_ex_<material>.omeex``.
 
 ``nonlinear``
-   Additionally computes the exciton-to-exciton (inter-exciton) matrix elements needed for the excitonic
-   shift current. These stay in memory and are not written to disk unless you enable
-   :ref:`kw-cache`.
+   Additionally computes the exciton-to-exciton (inter-exciton) matrix elements needed for every
+   excitonic second-order response. These stay in memory and are written to disk only through
+   :ref:`kw-cache`, from which later runs read them with ``OME_ex = none``.
 
 ``none``
    Compute nothing. For ``absorbance``, the excitonic matrix elements are read from
-   ``ome_linear_ex_<material>.omeex``.
+   ``ome_linear_ex_<material>.omeex``. For a second-order ``Response`` they are read from the
+   :ref:`kw-cache` file, the excitonic counterpart of ``OME_sp = none``: set ``Cache_ome_ex = read`` (or
+   ``readwrite``). Neither the envelopes nor anything else is computed, so a missing or non-matching cache
+   **stops** the run, as does ``OME_ex = none`` on a second-order run without ``Cache_ome_ex``.
 
 .. important::
 
-   * The excitonic shift current needs ``OME_ex = nonlinear`` **in the same run**, because the
-     inter-exciton elements are not kept in a file. Use ``Cache_ome_ex`` to avoid recomputing them.
+   * The inter-exciton elements of the second-order responses are kept only in memory and in the
+     :ref:`kw-cache` file. Compute them with ``OME_ex = nonlinear`` (and ``Cache_ome_ex = write`` or
+     ``readwrite`` to keep them); later runs read them with ``OME_ex = none`` and ``Cache_ome_ex = read``.
    * ``OME_ex = linear`` or ``nonlinear`` may be combined with ``OME_sp = none``. The exciton envelopes
      must be carried into the same band basis as the single-particle states, using per-k rotation
      matrices built while ``OME_sp`` is computed; the ``.omesp`` file stores them, together with the
@@ -567,8 +578,10 @@ Which optical response to compute:
 ``none``
    Compute no response. Useful to only produce the matrix-element files (see :doc:`workflows`).
 
-Any other value stops the program with a list of the valid options. All second-order responses need
-``OME_sp = nonlinear`` (and ``OME_ex = nonlinear`` for the excitonic result).
+Any other value stops the program with a list of the valid options. All second-order responses need the
+nonlinear single-particle matrix elements (``OME_sp = nonlinear``, or ``none`` with an
+``ome_nonlinear_sp_<material>.omesp`` from any earlier second-order run) and, for the excitonic result,
+the inter-exciton elements (``OME_ex = nonlinear``, or ``none`` with ``Cache_ome_ex = read``).
 
 All second-order outputs use one normalisation and the physical sign of the electron charge
 (:ref:`second-order-normalisation`, since 2026-10-06).
@@ -789,8 +802,10 @@ Cache_ome_ex
    readwrite
 
 Optional (default ``off``), case insensitive. It controls an on-disk cache of the **second-order
-excitonic matrix elements** (``OME_ex = nonlinear``). Building them is the most expensive part of an
-excitonic shift-current run, and the cache lets later runs skip it.
+excitonic matrix elements**. Building them is the most expensive part of an excitonic second-order run,
+and the cache lets later runs skip it. With ``OME_ex = nonlinear`` the cache is used as in the table
+below; with ``OME_ex = none`` (any second-order ``Response``) the elements must come from the cache, so
+``read`` or ``readwrite`` is required and a miss stops the run.
 
 .. list-table::
    :header-rows: 1

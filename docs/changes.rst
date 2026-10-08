@@ -5,8 +5,37 @@ Recent changes
 Changes that affect results, output files or how you drive OptiX. Ordered newest first. Where a change
 alters numbers that earlier runs produced, the size of the difference is stated.
 
+2026-10-08
+==========
+
+One ``.omesp`` for every branch; ``OME_ex = none`` reads the cache
+------------------------------------------------------------------
+
+* Every ``OME_sp = nonlinear`` run now stores the block-covariant data of **both** covariant methods (the
+  shift current and SHG / electro-optic / rectification / ``general``), whatever its ``Response``. A
+  ``shift`` run used to store only its own, so a later ``shg`` run with ``OME_sp = none`` stopped with "no
+  covariant second-order data". Cost on a ``shift`` run (MoS\ :sub:`2` 60x60, 4 bands): wall time
+  +4%, peak memory +37 MB, file 61 :math:`\to` 89.5 MB, the size an ``shg`` run's file already had.
+* ``OME_ex = none`` on a second-order run reads the excitonic matrix elements from the :ref:`kw-cache`
+  file (``Cache_ome_ex = read`` or ``readwrite``), as ``OME_sp = none`` reads the ``.omesp``; the exciton
+  envelopes are then not read either. It used to ignore the cache, read every envelope and fail later; now a
+  missing cache or a run without ``Cache_ome_ex`` stops at once with a message.
+
+**No computed number changes**: hBN 30x30 SHG, rectification, electro-optic and a 2D ``general`` map from
+the files equal direct runs to :math:`10^{-14}`; shift and SHG on MoS\ :sub:`2` equal the previous version
+to :math:`3\times10^{-14}`. Checked by ``make check_ome_cache`` (7 new checks, all failing on the
+previous version).
+
 2026-10-07
 ==========
+
+``Exciton_cutoff`` is optional
+------------------------------
+
+Without :ref:`kw-cutoff` an excitonic run now uses every exciton in the Xatu files (the count on the third
+line of the ``.eigval`` file) and reports it in the log; a negative value stops with a message. It used to
+leave the count unset, and the run crashed in the excitonic matrix elements. **No computed number changes**
+for inputs that set ``Exciton_cutoff``. Checked by ``make check_bandlist_guard``.
 
 Faster single-particle matrix elements and second-order kernel
 --------------------------------------------------------------

@@ -26,7 +26,7 @@ Test suite
    * - ``make run_test_second_symmetry``
      - the general two-frequency branch at :math:`\omega_2/\omega_1 \neq 1`: method A vs B, D3h, the :math:`r\leftrightarrow 1/r` identity, and the causal rectification's reality, D3h and forbidden injection
    * - ``make check_ome_cache``
-     - the five ``Cache_ome_ex`` modes: what each run does *and* what it reports doing
+     - the five ``Cache_ome_ex`` modes: what each run does *and* what it reports doing; ``OME_ex = none`` reading the cache with an ``.omesp`` written by another ``Response`` (= a direct run), and its two stops
    * - ``make check_a4_basis_guard``
      - that ``OME_sp = none`` reads the stored Eq. (A4) basis and reproduces an excitonic run exactly (linear and second order), that an ``.omesp`` without it is refused, and that the ``Cache_ome_ex = read`` exemption is allowed and exact
    * - ``make check_gauge_covariance``
@@ -42,7 +42,7 @@ Test suite
    * - ``make check_bands``
      - the band structure along a k-path: eigenvalues equal an independent NumPy diagonalisation (hBN, buckled hBN, MoS\ :sub:`2`), the hexagonal default path (K at the zone corner, the K gap), the ``Kpath`` point counts, jumps and labels, ``Response = bands`` writing only the band file, a malformed ``Kpath`` line refused
    * - ``make check_bandlist_guard``
-     - the band-window report and the unusual-``Bandlist`` warning (missing frontier bands, gaps, repeats; silent on complete windows and on Xatu band lists)
+     - the band-window report and the unusual-``Bandlist`` warning (missing frontier bands, gaps, repeats; silent on complete windows and on Xatu band lists); ``Exciton_cutoff`` omitted uses every exciton, a negative value stops
    * - ``make check_realtime_sign``
      - **absolute sign and normalisation**: SHG, rectification and the shift current on hBN against a real-time propagation of the density matrix (:ref:`second-order-normalisation`)
 

@@ -67,8 +67,10 @@ The ``.omesp`` file stores that basis (since 2026-10-06), so an excitonic run ma
 ``OME_sp = none``; an ``.omesp`` from an earlier version is refused (see :ref:`kw-omeex`).
 
 Faster still is a second-order cache. Once ``Cache_ome_ex = write`` has stored the excitonic
-matrix elements, later runs may use ``OME_sp = none`` **and** ``Cache_ome_ex = read`` together, which
-skips both the single-particle and the excitonic matrix-element stages and reads everything from disk.
+matrix elements, later runs may use ``OME_sp = none``, ``OME_ex = none`` and ``Cache_ome_ex = read``
+together, which skips both matrix-element stages and reads everything from disk. One
+``OME_sp = nonlinear`` run is enough for every second-order ``Response``: its ``.omesp`` holds the data of
+all of them.
 That is the cheap way to scan several ``Response`` branches, several frequency windows or several
 broadenings over one set of matrix elements — the branches all share the same elements.
 
@@ -102,16 +104,17 @@ Excitonic shift current
    # Cache_ome_ex
    readwrite
 
-The inter-exciton matrix elements are only kept in memory, so ``OME_ex = nonlinear`` is needed every
-time an excitonic shift current is computed. Building them dominates the cost, and
-``Cache_ome_ex = readwrite`` turns later runs (new ``Energy_variables`` or broadening) into a quick
-read of ``ome_second_ex_<material>.omeex2``.
+The inter-exciton matrix elements are kept only in memory and in the cache file. Building them dominates
+the cost, and ``Cache_ome_ex = readwrite`` turns later runs (new ``Energy_variables``, broadening or
+``Response``) into a quick read of ``ome_second_ex_<material>.omeex2``, with ``OME_ex = none`` (or
+``nonlinear``, which also recomputes on a miss).
 
 Typical sequence:
 
 1. Run with ``Cache_ome_ex = write`` (or ``readwrite``) once.
-2. Change ``Energy_variables`` or ``Broadening_type`` and rerun with ``Cache_ome_ex = read``. The log
-   shows ``Second-order excitonic OMEs read from cache ... exciton k-loop skipped``.
+2. Change ``Energy_variables``, ``Broadening_type`` or ``Response`` and rerun with ``OME_sp = none``,
+   ``OME_ex = none`` and ``Cache_ome_ex = read``. The log shows
+   ``Second-order excitonic OMEs read from cache ... exciton k-loop skipped``.
 3. If you later **lower** ``Exciton_cutoff``, the same cache is still used (a subset of it). If you
    raise it, the elements are recomputed.
 
@@ -124,7 +127,7 @@ For an excitonic second-order study the expensive stage is building the exciton 
 it does not depend on ``Response``, the frequency window or the broadening. So:
 
 #. run once with ``Cache_ome_ex = write``;
-#. run every branch afterwards with ``OME_sp = none`` and ``Cache_ome_ex = read``.
+#. run every branch afterwards with ``OME_sp = none``, ``OME_ex = none`` and ``Cache_ome_ex = read``.
 
 That second form skips both the single-particle and the excitonic matrix-element stages, and it also
 skips reading the exciton envelopes from the ``.states`` file — which for a large basis is the biggest
