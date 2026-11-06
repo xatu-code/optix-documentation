@@ -12,7 +12,8 @@ argument:
 Besides the input file itself, a run needs:
 
 * a **Wannier90 tight-binding file** (``<seedname>_tb.dat``) — always;
-* the Xatu **exciton files** (``.eigval`` and ``.states``) — only for excitonic calculations.
+* the Xatu **exciton files** — only for excitonic calculations: either the ``.eigval`` and ``.states`` text
+  files, or one HDF5 archive ``<label>.h5`` (``xatu -H``, read by an OptiX built with ``make HDF5=1``).
 
 Format rules
 ============
@@ -88,7 +89,7 @@ Keyword summary
      - ``true`` (default) or ``false``: the model file carries an overlap matrix :math:`S(\mathbf R)`.
    * - :ref:`kw-xatu`
      - always
-     - ``true``/``false``; if ``true``, followed by the ``.eigval`` and ``.states`` paths.
+     - ``true``/``false``; if ``true``, followed by the ``.eigval`` and ``.states`` paths, or by one ``.h5`` path.
    * - :ref:`kw-bandlist`
      - sp only
      - Bands included, relative to the Fermi level.
@@ -114,6 +115,12 @@ Keyword summary
    * - :ref:`kw-sp-method`
      - optional
      - Single-particle second-order method: ``covariant`` (default) or ``per_band``.
+   * - :ref:`kw-scissor`
+     - optional
+     - Rigid shift of the conduction bands (eV), and whether positions or velocities are kept.
+   * - :ref:`kw-band-phase`
+     - excitonic only, optional
+     - Phase rule of Xatu's band states when the exciton input does not store them: ``sum`` (default) or ``weighted``.
    * - :ref:`kw-ex-rect`
      - obsolete
      - Ignored if ``causal``; ``shift`` stops (use ``Response = shift``).
@@ -243,8 +250,16 @@ stops (see :doc:`troubleshooting`).
 Validated by rewriting hBN in a non-orthogonal basis that describes the same physics and requiring the
 results of the orthonormal model: with an on-site overlap the shift current, SHG, absorbance and bands
 agree to :math:`10^{-10}` or better; with a k-dependent (non-local) overlap the shift current, SHG and
-rectification agree to :math:`2\times10^{-9}` or better. The excitonic path has not been tested with a
-non-orthonormal model.
+rectification agree to :math:`2\times10^{-9}` or better.
+
+**Excitons on a non-orthonormal model.** The exciton envelopes are coefficients on Xatu's band states, so OptiX
+must use the same states, phases included. Xatu fixes each band's phase by making the sum of its eigenvector's
+coefficients real, and with an overlap those coefficients are the Lowdin ones, :math:`S^{1/2}c`; OptiX applies
+the same rule to :math:`S^{1/2}c` (since 2026-10-21). Checked against Xatu on a MoSe\ :sub:`2` model with
+spin-orbit coupling from CRYSTAL (87x87, 2v x 4c): the excitonic absorbance agrees to :math:`1.3\times10^{-3}`,
+the single-particle one to :math:`2.5\times10^{-3}`. An ``.omesp`` written by an earlier version for a
+non-orthonormal model carries the old phases; an excitonic run that reads it with ``OME_sp = none`` stops and
+asks for it to be regenerated.
 
 .. _kw-xatu:
 
@@ -268,15 +283,44 @@ the Xatu **eigenstates** file, in that order:
    /home/user/xatu_run/hBN.eigval
    /home/user/xatu_run/hBN.states
 
+Instead of the two text files, ``true`` can be followed by **one** path, that of a Xatu HDF5 archive
+(``<label>.h5``, written by ``xatu -H`` with the ``-c`` flag). OptiX recognises it by its extension, ``.h5``
+or ``.hdf5``:
+
+.. code-block:: text
+
+   # Xatu_interface
+   true
+   /home/user/xatu_run/hBN.h5
+
+Reading an archive needs an OptiX built with ``make HDF5=1`` (see :doc:`installation`). It holds the same
+information at full double precision (the text files carry 7 to 8 significant digits) and states the band
+window, the k-mesh and the exciton count explicitly, which allows three checks the text files cannot support.
+OptiX stops if:
+
+* ``Nfermi`` differs from the filling of the Xatu run;
+* the archive's k-mesh is not the mesh OptiX builds itself (a Xatu ``submesh`` or ``shift``, or a run
+  on a different lattice);
+* the exciton basis is not in the order OptiX indexes it (k slowest, then conduction, then valence).
+
+``Bandlist`` may then be given only if it equals the archive's band window. Without ``Exciton_cutoff``
+every exciton in the archive is used. Text output of earlier Xatu runs converts to an archive with
+``tools/xatu_text_to_h5.py`` (``--nfermi`` and ``--ndim`` supply what the text files do not record). It
+converts one exciton at a time, so it needs little memory whatever the size of the run, parses the text in
+parallel (``-j N`` worker processes, default the CPUs available to the job, at most 32), and
+``--compression N`` (gzip level 1-9) compresses the archive, though only by a few per cent for text-converted
+data, whose coefficients carry 7 significant digits.
+
 Any value other than ``true`` or ``false`` stops the program.
 
-With ``true``, OptiX takes the **k-mesh** and the **band window** from the ``.states`` file. That makes
+With ``true``, OptiX takes the **k-mesh** and the **band window** from the ``.states`` file (or the archive). That makes
 the single-particle and excitonic calculations use exactly the grid and bands Xatu used. In that case:
 
-* do **not** give ``Bandlist``; it would clash with the band list read from Xatu;
+* do **not** give ``Bandlist`` with the text files; it would clash with the band list read from Xatu (with an
+  archive it may be given, but must equal the archive's window);
 * ``Ncells`` is ignored;
 * Xatu must have been run on the **same Wannier90 file**, with ``--w90 <filling>`` where
-  ``<filling>`` equals ``Nfermi``, and with the ``-e`` and ``-c`` output flags;
+  ``<filling>`` equals ``Nfermi``, and with the ``-e`` and ``-c`` output flags (``-c -H`` for an archive);
 * Xatu must have written at least ``Exciton_cutoff`` states (its ``-n`` option).
 
 With ``true``, every response is computed twice: once for independent particles (``sp`` files) and once
@@ -358,7 +402,10 @@ The number of **filled bands** in the Wannier Hamiltonian. The system is treated
 zero temperature: bands in ``Bandlist`` with index :math:`\le 0` have occupation 1 and the rest have
 occupation 0.
 
-With Xatu, this **must match** the filling passed to ``xatu --w90``.
+With Xatu, this **must match** the filling passed to ``xatu --w90``. OptiX checks it: the ``.states`` file
+(or the HDF5 archive) says which bands Xatu took as valence and which as conduction, and a ``Nfermi`` that
+puts them on the wrong side of the Fermi level stops the run at once, naming the value to use. Any window
+without a conduction band or without a valence band also stops the run (except ``Response = bands``).
 
 ``Nfermi`` must put the Fermi level in a gap **at every k-point**: occupations follow the band index, not
 the energy. If band ``Nfermi`` reaches higher than band ``Nfermi + 1`` anywhere on the mesh, or the two
@@ -380,8 +427,8 @@ excitonic response. The spectrum is converged only up to roughly the energy of t
 included. Used only when ``Xatu_interface`` is ``true``.
 
 Optional. Without it OptiX uses every exciton Xatu wrote, and says so in the log
-(``Exciton_cutoff not given: using all 900 excitons in the Xatu files``). The count is the third line of
-the ``.eigval`` file; the first line of the ``.states`` file is the size of the exciton basis, which is the
+(``Exciton_cutoff not given: using all 900 excitons in the Xatu files``, or ``... in the Xatu archive``). An
+archive states the count explicitly. For the text files it is the third line of the ``.eigval`` file; the first line of the ``.states`` file is the size of the exciton basis, which is the
 same number only when Xatu wrote every state. Mind the cost (below) before running a large file in full.
 
 It cannot exceed the number of states Xatu wrote. Asking for more stops the run and tells you how many
@@ -574,6 +621,8 @@ Which optical response to compute:
    Write the band structure (:doc:`outputs/bands`) and stop, before any matrix element is computed. Use it to
    choose ``Nfermi`` and ``Bandlist`` for a new model. Needs only the model, ``Periodic dimensions``,
    ``Xatu_interface = false``, ``Ncells`` (any value), ``Bandlist``, ``Nfermi`` and, optionally, :ref:`kw-kpath`.
+   With Xatu input it also works, and checks the Xatu files against the model, but it reads no exciton
+   envelopes, so it takes seconds even for a complete exciton basis.
 
 ``none``
    Compute no response. Useful to only produce the matrix-element files (see :doc:`workflows`).
@@ -616,6 +665,86 @@ On models without degeneracies the two agree, e.g. hBN to :math:`10^{-10}` (SHG)
 stage and writes a larger ``.omesp``. With ``OME_sp = none``, the ``.omesp`` read back must come from a
 ``covariant`` run; otherwise OptiX stops and says so. The explicit names ``shift_shiftvector`` and
 ``shift_covariant`` ignore this keyword. Any value other than the two above stops the program.
+
+.. _kw-scissor:
+
+Scissor and Scissor_mode
+------------------------
+
+.. code-block:: text
+
+   # Scissor
+   1.0
+   # Scissor_mode
+   r_unchanged
+
+Optional. ``Scissor`` (eV, default 0) shifts every conduction band rigidly,
+:math:`E_c \to E_c + \Delta`, in the single-particle responses and in the excitonic matrix elements between the
+ground state and the excitons. It is applied when the responses are computed: the ``.omesp`` always holds the
+unshifted model, so ``OME_sp = none`` works with any ``Scissor``. Only conduction-valence pairs change; energy
+differences, positions and velocities within the valence or within the conduction bands do not.
+
+``Scissor_mode`` (default ``r_unchanged``, case insensitive) chooses what the shift keeps fixed, with
+:math:`\omega_{cv} = E_c - E_v` before the shift:
+
+``r_unchanged``
+   The interband position elements :math:`r_{cv}` are kept and the velocities are rescaled,
+   :math:`v_{cv} \to v_{cv}(\omega_{cv}+\Delta)/\omega_{cv}`: the scissor operator
+   :math:`\Delta P_c`, which commutes with the position operator (Levine & Allan, PRL 63, 1719 (1989); Nastos
+   *et al.*, PRB 72, 045223 (2005) for second order). The shift current moves rigidly by :math:`\Delta`, and the
+   excitonic route with non-interacting excitons agrees with the single-particle route as it does without a scissor.
+   This default reproduces Xatu's Kubo conductivity (MoSe\ :sub:`2` with spin-orbit coupling, 60x60, 2 valence and 8
+   conduction bands: single-particle within :math:`2\times10^{-3}`, excitonic xx :math:`1.7\times10^{-3}`).
+
+``v_unchanged``
+   The velocities are kept and the positions rescaled, :math:`r_{cv} \to r_{cv}\,\omega_{cv}/(\omega_{cv}+\Delta)`.
+   No Hamiltonian has these matrix elements, so expressions that
+   are equivalent for a real model can disagree: on buckled hBN (30x30, :math:`\Delta` = 1 eV) the excitonic and
+   single-particle routes differ by 1.2% in the out-of-plane shift components (zxx, zyy, xxz, yyz), against
+   :math:`3\times10^{-4}` with ``r_unchanged``. In-plane components agree in both modes.
+
+What changes with each mode: the single-particle energies in every lineshape and denominator (both modes); the
+single-particle velocities (``r_unchanged``) or positions (``v_unchanged``) of conduction-valence pairs; for
+excitons, :math:`P_n` (``r_unchanged``, used by the linear response) or :math:`X_n` (``v_unchanged``, used by the
+second-order responses). Single-particle second order is supported with the default :ref:`kw-sp-method` only;
+``per_band`` with a scissor stops the run.
+
+**Excitons.** Xatu applies its own scissor (``scissor`` in the exciton configuration) to the BSE; give OptiX the same
+value. With a Xatu archive, OptiX compares ``Scissor`` with the scissor the archive records and stops if they
+differ. Text files and archives converted from them record none, and the log says the value could not be checked.
+The second-order excitonic cache (:ref:`kw-cache`) records the scissor and its mode, and a cache written with
+different ones stops the run. Any ``Scissor_mode`` other than the two above stops the program.
+
+.. _kw-band-phase:
+
+Band_phase
+----------
+
+.. code-block:: text
+
+   # Band_phase
+   weighted
+
+Optional, excitonic runs only. The exciton envelopes are coefficients on Xatu's band states; OptiX rebuilds those
+states from the model and must give each band the phase Xatu gave it. Xatu fixes a band's phase by making a sum of
+its coefficients :math:`c_i` real (with an overlap, of the Lowdin coefficients :math:`S^{1/2}c`):
+
+``sum`` (default)
+   :math:`\sum_i c_i` real.
+
+``weighted``
+   :math:`\sum_i w_i c_i` real, :math:`w_i = e^{2\pi i g (i-1)}`, :math:`g = (\sqrt{5}-1)/2`: Xatu builds that avoid
+   the plain sum's accidental zeros (it vanishes for symmetric or antisymmetric orbital combinations, and the phase
+   is then rounding noise).
+
+The keyword matters only when the exciton input does not store the band states: Xatu text output, and archives
+converted from it. An archive written by ``xatu -H -c`` stores them (``/bands/eigenvectors``), and OptiX then takes
+the exciton-window states from it directly, at degenerate k-points too, and ignores ``Band_phase`` (the log says
+so, names the rule it finds in the archive, and reports the overlap deficit between Xatu's states and OptiX's; a
+deficit above :math:`10^{-2}` means another model and stops the run). A wrong rule does not stop anything: it
+scrambles every excitonic matrix element (In\ :sub:`2`\ Se\ :sub:`3` 102x102: excitonic absorbance xx - yy 34%
+where C3 requires 0). If in doubt, compare OptiX's linear excitonic absorbance with Xatu's own. The ``.omesp`` and
+the excitonic cache record which states they hold, and reading one made for other states stops the run.
 
 .. _kw-ex-rect:
 
@@ -828,7 +957,9 @@ Each time it reads, OptiX checks that the cache belongs to the current calculati
   the run;
 * the **band list** itself, not just the band counts — a different band set, *or the same bands in a
   different order*, **stops** the run;
-* exciton energies, compared against the current ``.eigval`` — a mismatch **stops** the run;
+* exciton energies, compared against the current Xatu files to :math:`10^{-10}` — a mismatch **stops** the run.
+  An archive and the text files of the **same** Xatu run differ at that level (the archive keeps full
+  precision), so a cache written from one does not serve the other;
 * how the inter-exciton position elements were built (``Xnm_derivative``) — a mismatch **stops** the
   run;
 * number of stored excitons — if the cache has fewer than ``Exciton_cutoff``, it is recomputed. A cache
@@ -859,8 +990,8 @@ The file is large: about :math:`96\,N^2` bytes for :math:`N` = ``Exciton_cutoff`
 ``true``.
 
 A hit skips more than the exciton k-loop. It also skips **reading the exciton envelopes** from the
-``.states`` file, since the cached matrix elements are exactly what the k-loop would have built from
-them. That read is plain ASCII and can dominate start-up for a large exciton basis — on a
+``.states`` file (or the archive), since the cached matrix elements are exactly what the k-loop would have
+built from them. That read is plain ASCII and can dominate start-up for a large exciton basis — on a
 2700-exciton ReS\ :sub:`2` run it is 1.9 GB and 16.8 s, against 0.9 s to read the 700 MB binary cache — so a
 cached run starts in seconds rather than tens of seconds. If the cache turns out to miss, the
 envelopes are read at that point instead, costing exactly what they would have cost anyway.
@@ -890,7 +1021,10 @@ so the derivative is only meaningful if that basis varies smoothly from one k-po
      - Each neighbouring envelope is first carried into the band basis at k, using the overlaps of the
        band states between the two k-points, and only then differenced (fourth-order stencil). The result
        does not depend on the phases of the band states, or on how bands are mixed inside a degenerate
-       group, so it is safe for any model.
+       group, so it is safe for any model. On a 2D hexagonal mesh the differences are taken along the
+       three mesh directions related by the threefold rotation (the two reciprocal axes and their sum or
+       difference), so that the derivative itself respects that symmetry; on any other mesh along the
+       crystal axes.
    * - ``finite_difference`` (= ``plain``)
      - The original method: a plain difference of the envelopes between neighbouring k-points. It is
        correct only where the band phases vary smoothly, which holds for simple models like hBN but not
@@ -901,6 +1035,14 @@ between neighbouring k-points. The ``finite_difference`` method then breaks the 
 symmetry by 20–65% in the excitonic shift, rectification and SHG spectra, against 2–5% with
 ``covariant``. On hBN the two agree, and ``covariant`` is the more accurate of the two (see
 :doc:`changes`). Keep the default unless you are reproducing results from before 2026-10-04.
+
+The three-direction stencil matters for excitons the mesh resolves poorly. Excited and near-gap excitons of
+weakly screened materials can sit on a handful of k-points (MoSe\ :sub:`2`, 87x87: half the weight of some states
+on 5-9 points, a quarter on K itself), and differences along the two crystal axes alone then make
+:math:`X_{nm}` anisotropic: the excitonic SHG of MoSe\ :sub:`2` broke the threefold symmetry by 38.6%, against
+1.7% with the three directions. A denser mesh does not cure this (120x120: 30.6%), because more of the near-gap
+series appears and its states are narrower still. The log line ``X_nm: covariant envelope derivative on the
+hexagonal star of mesh directions`` says that the three-direction stencil is in use.
 
 .. _kw-basis-repair:
 
@@ -919,7 +1061,16 @@ returned. OptiX cannot read that choice from the Xatu files. Left alone, it chan
 second-order spectra of MoS\ :sub:`2` by 25–35%, depending only on which choice Xatu happened to make.
 
 With ``true``, OptiX determines the choice itself. At each such k-point it picks the combination that makes
-the envelopes vary smoothly from the neighbouring k-points, using all excitons at once. The spectra then no
-longer depend on Xatu's choice, and the symmetry residual of MoS\ :sub:`2` drops to the level reached when the
-degeneracy is lifted. The log reports how many k-points were treated. Models without exact degeneracies,
+the envelopes vary smoothly from the neighbouring k-points, fitted on the lowest excitons (at most half of the
+exciton basis) and applied to all of them. The spectra then no longer depend on Xatu's choice, and the symmetry
+residual of MoS\ :sub:`2` drops to the level reached when the degeneracy is lifted. The log reports how many
+k-points were treated and on how many excitons the fit was made, and warns if it does not converge. The fit uses
+the lowest excitons because, summed over a complete exciton basis, the overlap it is built from is exactly zero
+between different k-points and determines nothing. Models without exact degeneracies,
 such as hBN, are not affected.
+
+The repair is only needed when OptiX does not know Xatu's choice, i.e. with Xatu text files and archives converted
+from them. An archive written by ``xatu -H -c`` stores the band states themselves (:ref:`kw-band-phase`); OptiX then
+uses exactly those, inside degenerate groups too, and skips the repair (the log says so). Applying it there would
+rotate the envelopes away from the states they belong to: MoSe\ :sub:`2` with spin-orbit coupling, 87x87, lowest 3900
+excitons, excitonic SHG threefold-symmetry residual 7.1% with the repair against 0.45% without.

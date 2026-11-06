@@ -24,6 +24,14 @@ Errors that stop the run
    (:ref:`kw-bandlist`). If the window is intentional the warning can be ignored, but expect degenerate pairs
    to be cut.
 
+``ERROR (Nfermi): Nfermi does not match the band window of the Xatu .states file.``
+   ``Nfermi`` is not the filling Xatu used. The message lists Xatu's valence and conduction bands (counted from
+   0) and the value to set, normally the ``N`` of ``xatu --w90 N`` (:ref:`kw-nfermi`).
+
+``ERROR (Bandlist/Nfermi): no band of the window lies above the Fermi level``
+   With this ``Nfermi`` every band of the window is a valence band (or, for the matching message, every band is a
+   conduction band), so there is no optical transition. Check ``Nfermi`` and ``Bandlist`` (:ref:`kw-bandlist`).
+
 ``ERROR (parser_input_file): Ex_rectification = shift has been removed.``
    The excitonic rectification is now the whole causal response; for the shift current use
    ``Response = shift`` and drop the keyword (:ref:`kw-ex-rect`). ``Ex_rectification = causal`` only prints a
@@ -97,7 +105,9 @@ Errors that stop the run
    :ref:`kw-omeex`.
 
 ``ERROR (read_ome_ex_second): ... was written for a DIFFERENT system`` / ``cached exciton energies differ``
-   The ``.omeex2`` cache belongs to another calculation. Delete it or move it aside.
+   The ``.omeex2`` cache belongs to another calculation. Delete it or move it aside. A cache written from
+   the text files of a Xatu run also mismatches an archive of the same run (the archive's energies are
+   exact, the text ones rounded to 7 decimals).
 
 ``ERROR (read_ome_ex_second): ... was written for a DIFFERENT band set``
    The cache was built from different bands, **or from the same bands in a different order**, which is
@@ -109,13 +119,50 @@ Errors that stop the run
 ``ERROR (read_ome_ex_second): ... has a DIFFERENT number of bands``
    Same cause, detected one step earlier. Delete the cache.
 
+``ERROR: <file>.h5 is a Xatu HDF5 archive, but this opticx was built without HDF5.``
+   Rebuild with ``make clean && make HDF5=1`` (:doc:`installation`), or give the ``.eigval`` and ``.states``
+   text files instead.
+
+``ERROR (get_exciton_dim): Nfermi = N but the Xatu run that wrote the archive had M filled bands.``
+   ``Nfermi`` must equal the filling Xatu was run with (``--w90 M``); otherwise valence and conduction bands
+   are assigned wrongly. Correct ``Nfermi``, or rerun Xatu with the intended filling.
+
+``ERROR (get_exciton_dim): the archive holds N k points ...``
+   Xatu used a ``submesh`` (or the k-point count is not ``ncells`` to the power of the dimension). OptiX
+   differentiates the exciton envelopes between mesh neighbours and needs Xatu's full mesh. Rerun Xatu without
+   ``submesh``.
+
+``ERROR (get_exciton_data): the Xatu k mesh differs from the opticx mesh by up to ... bohr^-1.``
+   The archive's k-points are not the mesh OptiX builds: Xatu used a ``shift``, or a model with a different
+   lattice than the Wannier90 file given here. Rerun Xatu unshifted on the same Wannier90 file.
+
+``ERROR (get_exciton_dim): Bandlist disagrees with the band window of the Xatu archive.``
+   With an archive, ``Bandlist`` is optional and must equal the archive's window (both are printed). Remove
+   it, or make it match.
+
+``ERROR (get_exciton_dim): Exciton_cutoff = N but the Xatu archive holds M excitons.``
+   Lower ``Exciton_cutoff`` to at most ``M``, or rerun Xatu with a larger ``-n``.
+
+``ERROR (xatu_h5): ... holds no exciton states. Rerun Xatu with -c -H.``
+   The archive was written without ``-c``, so it has energies but no envelopes.
+
+``ERROR (xatu_h5): ... is not a Xatu exciton archive`` / ``... has format version N``
+   The file is another HDF5 file, or an archive in a layout this OptiX does not read. ``Xatu archive not
+   found`` means the path is wrong; ``attribute ... missing`` means the archive is incomplete or from an
+   older Xatu.
+
+``ERROR (xatu_h5): exciton basis row r is (v, c, k) = ..., expected ...``
+   The archive's electron-hole basis is not ordered as OptiX indexes the envelopes (k slowest, then
+   conduction, then valence fastest). An archive written by ``xatu -H`` or ``tools/xatu_text_to_h5.py`` is;
+   regenerate the file.
+
 ``ERROR (get_exciton_dim): no repeated valence-band index found ...``
    The ``.states`` file does not look like a Xatu eigenstates file. Check the path, and that Xatu ran
    with ``-c``.
 
 Fortran runtime error ``Attempting to allocate already allocated variable 'nband_index'``
-   ``Bandlist`` was given together with ``Xatu_interface = true``. Remove ``Bandlist``, since the band
-   list comes from the Xatu files.
+   ``Bandlist`` was given together with ``Xatu_interface = true`` and the text files. Remove ``Bandlist``,
+   since the band list comes from the Xatu files. (With an archive a matching ``Bandlist`` is accepted.)
 
 Fortran runtime error when opening ``ome_linear_sp_*.omesp`` / ``ome_nonlinear_sp_*.omesp``
    ``OME_sp = none`` was used, but the file does not exist in the current directory. Either the previous
@@ -125,9 +172,11 @@ Fortran runtime error when opening ``ome_linear_sp_*.omesp`` / ``ome_nonlinear_s
 Crashes and slow runs
 =====================
 
-Segmentation fault early in a run, especially for large meshes
-   Usually a stack overflow. Run ``ulimit -s unlimited`` and ``export OMP_STACKSIZE=512M`` (or larger)
-   before starting OptiX.
+Segmentation fault early in a run, especially for large models or meshes
+   Versions before 2026-10-16 overflowed the stack for models with many orbitals (e.g. 178) or long
+   frequency grids; update, or run ``ulimit -s unlimited`` and ``export OMP_STACKSIZE=512M`` before
+   starting OptiX. If a current version still crashes this way, the same two settings tell whether it is
+   the stack.
 
 The run is slow
    * Check that ``OMP_NUM_THREADS`` is set to the number of physical cores.
@@ -157,6 +206,10 @@ Warnings
    size and location of the largest defect. Small defects come from the precision the file was written with;
    larger ones (MoS\ :sub:`2`: :math:`6\times10^{-3}` Angstrom; In\ :sub:`2`\ Se\ :sub:`3`: 0.12 Angstrom) are a property of the Wannierisation. Regenerate or repair the
    file to silence the warning; the results will then not change.
+
+``WARNING (get_exciton_dim): Xatu solved the full BSE (no Tamm-Dancoff)``
+   The archive comes from a Xatu run without the Tamm-Dancoff approximation. OptiX uses the resonant block of
+   each state only, as it does with the text files (which hold only that block).
 
 ``WARNING (ome_sp): an Eq. (A4) multiplet straddles the Bandlist edge``
    A set of degenerate bands is only partly inside ``Bandlist``. Extend the list so that it contains

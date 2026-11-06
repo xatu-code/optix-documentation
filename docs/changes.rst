@@ -5,6 +5,253 @@ Recent changes
 Changes that affect results, output files or how you drive OptiX. Ordered newest first. Where a change
 alters numbers that earlier runs produced, the size of the difference is stated.
 
+2026-10-22
+==========
+
+No exciton basis repair on band states taken from the Xatu archive
+------------------------------------------------------------------
+Since the band states are taken from the Xatu archive (entry below), they are Xatu's inside exactly degenerate groups
+too, so the exciton basis repair (:ref:`kw-basis-repair`), which guesses Xatu's choice there, must not act: it rotated the
+envelopes alone and changed the excitons. It is now skipped in that case, with a log line. Measured on MoSe\ :sub:`2` with
+spin-orbit coupling (87x87, 289 such k-points), excitonic SHG threefold-symmetry residual: lowest 3900 excitons 7.1% ->
+0.45%, lowest 5860 1.3% -> 0.46%; with the complete 60552-exciton basis the repair rotated much further (mean
+:math:`|U-1|` 0.19 against 0.04 for 3900), and those runs (7.1% and 8.6% with the version of 2026-10-22 morning) must be
+repeated. Runs from text files, models without exact degeneracies (hBN, ReS\ :sub:`2`) and runs where the repair had
+nothing to do are unchanged. The excitonic cache of such a run is format 6, which records it; a format-5 cache on
+archive band states (written with the repair applied) stops the run and must be recomputed. Checked by
+``make check_band_phase`` (3 new checks).
+
+Inter-exciton elements on hexagonal meshes: a symmetric derivative
+-------------------------------------------------------------------
+The covariant derivative of the exciton envelopes in :math:`X_{nm}` (:ref:`kw-xnm`) differenced along the
+two crystal axes of the mesh only. On a hexagonal lattice that stencil is not mapped onto itself by the threefold
+rotation, and for excitons the mesh resolves poorly it made :math:`X_{nm}` anisotropic. On a 2D hexagonal mesh the
+derivative is now taken along the three mesh directions related by the rotation, with least-squares weights.
+Measured on MoSe\ :sub:`2` with spin-orbit coupling (87x87, lowest 2078 excitons): the threefold-symmetry residual of
+the excitonic SHG fell from 38.6% to 1.7% (the forbidden :math:`xxx` peak from 8.6 to 0.3); its allowed components
+change mostly around the two-photon resonances with near-gap excitons (by up to 62% of the maximum there). A 120x120
+mesh with the old stencil still gave 30.6%. hBN 30x30: 0.43% to 0.28%. In the non-interacting limit, where the
+excitonic route must reproduce the single-particle one, the new stencil is as accurate or slightly more (hBN 30x30:
+:math:`2.6\times10^{-3}` to :math:`2.1\times10^{-3}`; MoSe\ :sub:`2` 39x39: 13.7% to 13.2%). Every excitonic
+second-order result on a 2D hexagonal mesh changes (hBN, MoS\ :sub:`2`, MoSe\ :sub:`2`, In\ :sub:`2`\ Se\ :sub:`3`, ...);
+other lattices, linear responses and single-particle responses do not. The excitonic cache records the stencil
+(X_nm method code 3): a cache of a hexagonal mesh written before stops the run with a message and must be
+recomputed. Checked by ``make check_hex_stencil`` (7 checks; the previous version fails four of them).
+
+Excitons on non-orthonormal models with an intercell overlap
+-------------------------------------------------------------
+The inter-exciton position elements :math:`X_{nm}` used a wrong valence connection when the overlap of the Wannier
+functions depends on k, i.e. when it has terms between different cells (CRYSTAL Hamiltonians do). The covariant
+derivative carries a neighbour's envelope into the basis at k with the overlaps :math:`(S(k)c(k))^\dagger c(k')`, which
+are not unitary when :math:`S` depends on k; the valence index is carried with their complex conjugate, and its
+connection must then be built from :math:`A^\dagger` instead of :math:`A`. Measured on hBN rewritten in a non-orthogonal
+basis with intercell mixing (the same crystal, so every response must agree), with a complete set of non-interacting
+excitons: the excitonic SHG was 56% off at 30x30 and at 60x60; now :math:`1.4\times10^{-3}` and :math:`9.5\times10^{-5}`,
+the accuracy of the orthonormal model. Every second-order excitonic result on such a model changes (MoSe\ :sub:`2` with
+spin-orbit coupling: by :math:`10^{-5}` only); linear excitonic responses, single-particle responses, orthonormal models
+and overlaps without intercell terms do not (round-off). Excitonic caches of such models written before must be
+recomputed: they are not detected. Checked by ``make check_nonortho_xnm`` (6 checks; the previous version fails two).
+
+2026-10-21
+==========
+
+Band states of the exciton basis taken from the Xatu archive
+------------------------------------------------------------
+The exciton envelopes are coefficients on Xatu's band states, which OptiX rebuilds, so it has to reproduce Xatu's
+choice of each band's phase (and, at degenerate k-points, of the basis). It assumed one rule, the sum of the
+coefficients made real; some Xatu builds make a weighted sum real instead (:ref:`kw-band-phase`). Archives written
+by such a build gave excitonic results scrambled by a k- and band-dependent phase: In\ :sub:`2`\ Se\ :sub:`3` 102x102,
+excitonic absorbance xx - yy 34% of xx (C3 requires 0; Xatu's own spectrum 1.3%) and the excitonic rectification
+C3 residual 88%. Now:
+
+* when the archive stores its band states (``/bands/eigenvectors``, every archive written by ``xatu -H -c``), OptiX
+  takes the exciton-window states from it, whatever rule produced them. The log names the rule it finds and the
+  overlap deficit between Xatu's states and OptiX's (:math:`2\times10^{-15}` on In\ :sub:`2`\ Se\ :sub:`3`,
+  :math:`8\times10^{-15}` on MoSe\ :sub:`2` with an overlap). A deficit above :math:`10^{-2}` stops the run: the
+  archive was computed with a different model. In\ :sub:`2`\ Se\ :sub:`3`: absorbance = Xatu's to
+  :math:`5\times10^{-3}`, xx - yy 1.3%.
+* without them (text output, archives converted from text) the new keyword ``Band_phase = sum | weighted`` names
+  the rule; the default ``sum`` is the previous behaviour.
+
+Results from archives of plain-sum Xatu builds change only where that rule is ill-defined or at degenerate
+k-points (MoSe\ :sub:`2` SOC 87x87 absorbance: :math:`2.3\times10^{-5}`); results from archives of weighted-sum builds
+change completely and must be recomputed, caches included. Single-particle results do not change. The ``.omesp``
+and the excitonic cache record the band states they were built on (cache format 5, written only when the states
+are not made with the plain-sum rule): an ``.omesp`` read with ``OME_sp = none`` or a cache made for other states
+stops the run. Checked by ``make check_band_phase`` (23 checks at the time; with the alignment removed, 8 of them fail).
+
+Basis repair with a complete exciton basis
+------------------------------------------
+:ref:`kw-basis-repair` is now fitted on the lowest excitons only, at most half of the exciton basis, and applied to
+all of them. Over a complete basis (every exciton Xatu can produce, e.g. ``Exciton_cutoff`` = basis size) the
+overlap the fit is built from vanishes exactly, so the repair used to return an arbitrary rotation at every
+exactly degenerate k-point, without converging, while the log said it had converged. Measured on MoS\ :sub:`2`
+15x15 with all 899 excitons: excitonic SHG C3 69% before and 14% after (the residual of that dataset's exciton
+spectrum), and its dependence on Xatu's basis choice 3% before and :math:`3\times10^{-11}` after. (The 88% C3
+breaking of an In\ :sub:`2`\ Se\ :sub:`3` rectification run that first pointed here was a different defect, the band
+phases: see the entry above.) Runs that
+keep at most half of the basis are unchanged. A non-converged repair is now reported as a warning. Excitonic caches
+written with a (nearly) complete basis on a model with exact degeneracies must be recomputed. Checked by
+``make check_gauge_covariance`` (2 new checks; the previous version fails one).
+
+Excitons on non-orthonormal models
+----------------------------------
+With an overlap (``Orthonormal = false``, e.g. a CRYSTAL Hamiltonian), the band states now carry the phase
+convention of Xatu's (the sum of the Lowdin coefficients :math:`S^{1/2}c` made real), so the exciton envelopes
+refer to the same states. Before, the rule was applied to :math:`c`, which on MoSe\ :sub:`2` with spin-orbit
+coupling (87x87, 2v x 4c) put the excitonic absorbance 15% (xx) and 11% (yy) below Xatu's; now they agree to
+:math:`1.3\times10^{-3}`. Every excitonic result on a non-orthonormal model changes; single-particle results and
+orthonormal models do not. An ``.omesp`` written before for a non-orthonormal model is refused by excitonic runs
+with ``OME_sp = none`` (regenerate it once). Excitonic caches (``Cache_ome_ex``) written before for such a model
+are not detected: delete them. Checked by ``make check_nonortho_phase`` (8 checks; the previous phase rule fails
+the convention check).
+
+Scissor correction
+------------------
+New keywords ``Scissor`` (eV) and ``Scissor_mode`` (:ref:`kw-scissor`) shift every conduction band rigidly in the
+single-particle responses and in the excitonic ground-state-to-exciton matrix elements. ``r_unchanged`` (default)
+keeps the interband positions and rescales the velocities; ``v_unchanged`` keeps the velocities. With a Xatu archive, the value is checked against the scissor the archive records. Runs without
+``Scissor`` are unchanged (to round-off) and keep writing the same cache files; a run with a scissor writes a
+version-4 cache that records it. Checked by ``make check_scissor`` (24 checks, among them: the shift current moves
+rigidly by :math:`\Delta` to :math:`6\times10^{-15}` with ``r_unchanged``; non-interacting excitons agree with the
+single-particle code in both modes as well as without a scissor; removing either rescaling makes the corresponding
+checks fail).
+
+2026-10-16
+==========
+
+Band structure with Xatu input
+------------------------------
+``Response = bands`` with Xatu input (text files or archive) no longer allocates or reads the exciton
+envelopes, which a band structure does not use. It used to hold all of them in memory: for a complete basis of
+64800 excitons that is 67 GB, more than the run could reach (AFM CrSBr 90x90: stopped after 5.5 minutes at
+43 GB, still reading the archive); now 2 s and 72 MB. The band file is unchanged, and the archive's header,
+band window and k mesh are still checked. Checked by ``make check_bandlist_guard`` (1 new check; the previous
+version fails it).
+
+Input file path
+---------------
+
+The path of the input file given on the command line was cut at 100 characters without warning, so a longer
+path made OptiX open a different file or a directory ("Is a directory"). It may now have up to 1000
+characters, and a longer one stops the run with a message. A missing or misspelled input file now stops the
+run naming the file; before, OptiX created it empty and failed later. Running OptiX without an argument
+prints a usage line. Checked by ``make check_bandlist_guard`` (4 new checks; the previous version fails all
+four).
+
+Converting large Xatu text output to an archive
+-----------------------------------------------
+
+``tools/xatu_text_to_h5.py`` now converts the excitons one at a time instead of holding all of them in
+memory, so a complete 102x102 basis (41616 states, 28 GB of coefficients) converts in about 100 MB of memory
+instead of more than 28 GB; hBN 75x75 (5625 states): 555 MB -> 70 MB, same time. The archive is unchanged:
+every dataset and attribute equals the previous version's except the creation time. New option
+``--compression N`` (gzip level 1-9; text-converted data compresses by only about 7%). A conversion that stops
+on an error (e.g. a truncated ``.states`` file) no longer leaves a partial archive behind.
+
+The conversion is also parallel: worker processes parse the text (and compress it, with ``--compression``)
+while the main process reads the file in large blocks and writes the archive in order. New option ``-j N``
+(default: the CPUs available to the job, at most 32). Parsing the text was the whole cost of a conversion:
+MoSe\ :sub:`2` 60x60 (6 GB of text) 50 s -> 6.7 s, hBN 90x90 (1.9 GB) 14.5 s -> 2.1 s, and with
+``--compression 4`` 23.9 s -> 2.9 s. On large files the speed is then set by how fast the disk reads (about
+1 GB/s of text here). The archive does not depend on ``-j``, and equals the previous version's except the
+creation time and, with ``--compression``, the chunk layout (one chunk per state).
+
+A wrong ``Nfermi`` now stops the run
+------------------------------------
+
+With Xatu text input, ``Nfermi`` was used to place the bands of the ``.states`` file without checking it
+against Xatu's own split into valence and conduction bands. A wrong value went unnoticed: ``Nfermi = 46`` on a
+Xatu run with filling 26 turned all four bands into valence bands; the excitonic second-order run then failed
+much later in a bounds check, and a linear run completed with meaningless spectra. The run now stops while reading the Xatu
+files, lists Xatu's valence and conduction bands and names the ``Nfermi`` to use (:ref:`kw-nfermi`); the HDF5
+archive input already did this. Any band window without a conduction band or without a valence band (e.g.
+``Bandlist = -1 0``) also stops, except for ``Response = bands``. Runs with a correct ``Nfermi`` are
+unchanged. Checked by ``make check_bandlist_guard`` (5 new checks; the previous version completed all four
+wrong cases with exit code 0).
+
+No more stack overflows for large models or many frequencies
+------------------------------------------------------------
+
+Three OpenMP loops kept per-thread copies of arrays on the thread's stack, which a large model or a long
+frequency grid overflowed. The run then stopped with a segmentation fault unless the stack limits had been
+raised (``ulimit -s unlimited``, ``OMP_STACKSIZE``):
+
+* the k-point loop of the single-particle matrix elements (``OME_sp``): about :math:`11` MB per thread for a
+  178-orbital model (MoSe\ :sub:`2` with spin-orbit coupling), against the default 8 MB, so every run of such a
+  model crashed at the start of that stage;
+* the k-point sum of the single-particle linear conductivity and the exciton sum of the excitonic one:
+  :math:`144\,n_w` bytes per thread for :math:`n_w` frequencies (5.8 MB at 40000).
+
+These copies are now on the heap. **No computed number changes.** Checked with only 1 MB of stack per thread
+and 40000 frequencies on MoSe\ :sub:`2` (178 orbitals: single-particle shift, SHG and absorbance) and hBN
+(excitonic shift, SHG and absorbance). The previous version crashed on the four runs with large per-thread
+arrays (all three MoSe\ :sub:`2` runs and the excitonic absorbance). Every output equals the previous version
+run with unlimited stack: absorbance and shift current to :math:`9\times10^{-16}` of the peak, SHG to
+:math:`1.2\times10^{-12}`, the same as two runs of the previous version differ from each other. Raising the
+stack limits is no longer necessary and still does no harm.
+
+2026-10-09
+==========
+
+Xatu HDF5 archives as input
+---------------------------
+
+``Xatu_interface = true`` can be followed by the path of one Xatu HDF5 archive (``xatu -H``, extension
+``.h5`` or ``.hdf5``) in place of the ``.eigval`` and ``.states`` files; see :ref:`kw-xatu`. Needs
+``make HDF5=1``; builds without it are unchanged and stop with a message if given an archive. The archive
+states the band window, the k-mesh and the Xatu filling, so OptiX now **stops** on a wrong ``Nfermi``, on a
+Xatu mesh it cannot use (``submesh``, ``shift``), on an exciton basis in an unexpected order, and on an
+``Exciton_cutoff`` above the number of excitons stored. ``tools/xatu_text_to_h5.py`` converts earlier text
+output.
+
+**Numbers.** From an archive converted from text files the results equal the text-file run to
+:math:`4\times10^{-15}`, the run-to-run noise. An archive written by Xatu itself keeps full precision where the
+text files are rounded to 7 to 8 digits, so the same Xatu run gives slightly different results from the
+two inputs. Measured on hBN 30x30 (all 900 excitons): excitonic SHG and shift current
+:math:`2.7\times10^{-6}` (relative to the peak), single-particle shift :math:`1.7\times10^{-6}`, and
+single-particle SHG :math:`3\times10^{-4}`. The single-particle SHG is the most sensitive because the text
+k-points are rounded to :math:`10^{-7}` Angstrom :math:`^{-1}`, which breaks the symmetry of the mesh. With the
+archive's exact mesh the D3h residual of the single-particle SHG falls from :math:`4.1\times10^{-4}` to
+:math:`3.1\times10^{-5}`. A ``Cache_ome_ex`` file written from text input does not match an archive of the
+same Xatu run (the energies differ beyond the cache's :math:`10^{-10}` tolerance) and stops the run; delete it.
+Checked by ``make check_xatu_h5``.
+
+Reproducible ``.omesp`` files
+-----------------------------
+
+A second-order ``.omesp`` of a 2D (or 1D) model stored, for the neighbour points of the non-periodic
+direction, band energies that were never set, so two identical runs could write different files. They are
+now zero. The covariant kernels multiplied them by zero position elements, so **no computed number
+changes**: hBN, buckled hBN and MoS\ :sub:`2` SHG and rectification equal the previous version to round-off
+(:math:`5\times10^{-14}`), and the file is now the same byte for byte across runs, thread counts and the text
+or HDF5 Xatu input. Checked by ``make check_xatu_h5``.
+
+2026-10-12
+==========
+
+Covariant shift current: zone-edge artefact on non-symmorphic crystals removed
+------------------------------------------------------------------------------
+
+On GeS (and SnTe: point group mm2 with a glide plane) ``Response = shift`` on an **even** mesh was dominated
+by symmetry-forbidden components from the zone edge, where the glide makes bands stick in pairs that the
+Wannier fit splits by 0.1-20 meV: the lineshape correction divides by that splitting, and a line of mesh
+points sitting on it gave a contribution that falls only as :math:`1/N` (GeS, bands 17-24: forbidden
+:math:`\sigma^{xxz}` = 448 / 224 / 108 :math:`\mu\text{A nm/V}^2` at 60x60 / 120x120 / 250x250; 25% of the
+tensor in :math:`m_y`-forbidden components). Odd meshes contain no edge line and were nearly unaffected.
+
+Two changes (:ref:`theory/shift_covariant <shift-covariant>`): the block tolerance ``cov_tol`` is 30 meV (was 3
+meV), and a pair is treated as degenerate where its splitting is below 0.3 of its splitting at both
+neighbouring mesh points along some axis. GeS: forbidden :math:`\sigma^{xxz}` 1.5-2.4, forbidden share
+0.7-1.3%, even and odd meshes agree to 1-3% from 120x120 to 251x251. Field-split MoS\ :sub:`2` had a weaker
+artefact of the same kind on its :math:`\Gamma`-M lines and now converges much faster (distance to the
+:math:`N\to\infty` limit 1.1-1.7% at 90x90 ... 250x250, against 4.5-12.6%).
+
+**Numbers change** for ``Response = shift`` (covariant) on models with near-degenerate pairs: GeS results on
+even meshes change completely; on odd meshes and on MoS\ :sub:`2` by a few per cent. hBN and other models without
+near-degenerate pairs are unchanged. The SHG / electro-optic / rectification / ``general`` covariant kernel has
+no such term and is unchanged.
+
 2026-10-08
 ==========
 

@@ -58,15 +58,20 @@ asymmetry into a forbidden component about 4% of the size of an allowed injectio
 model. An independent calculation on the same model gives the same number, so this is the model and not
 OptiX.
 
-Excitonic rectification and shift current differ at bound excitons
---------------------------------------------------------------------
+Excitonic rectification and shift current differ by the exciton-exciton term
+-----------------------------------------------------------------------------
 
-``Response = rectification`` (causal) and ``Response = shift`` (the convention of the reference paper) agree in
-the independent-particle limit and above the gap, but not at bound excitons: on buckled hBN the symmetric
-real part of the rectification is 0.53 of the shift current, mesh-converged and nearly independent of
-:math:`\eta`. The difference is the exciton-exciton term between distinct bound excitons, which the
-shift-current convention cancels by construction (:ref:`dc-term3`). Which one describes an experiment depends
-on how the bound excitons relax, which neither formula models.
+The exciton-exciton term is the distinction between ``Response = rectification`` (causal), which keeps it, and
+``Response = shift`` (the convention of the reference paper), which cancels it by construction (:ref:`dc-term3`).
+
+* **Without interaction, more than one valence or conduction band.** The term carries three-band virtual transitions
+  that belong to the independent-particle shift current, so ``Response = shift`` does not reduce to the
+  single-particle shift current; the rectification does. In\ :sub:`2`\ Se\ :sub:`3` (30x30, 4 valence and 1 conduction
+  band, zzz): the shift route is 0.60-0.83 of the rectification, which equals the single-particle rectification and a
+  real-time propagation to 0.3% (:math:`\eta` = 0.15 eV). With one valence and one conduction band the two agree.
+* **At bound excitons.** The term between distinct bound excitons survives: on buckled hBN the symmetric real part of
+  the rectification is 0.53 of the shift current, mesh-converged and nearly independent of :math:`\eta`. Which one
+  describes an experiment depends on how the bound excitons relax, which neither formula models.
 
 The rectification's forbidden components also converge more slowly with the k-mesh than SHG's, as for the
 electro-optic branch below: on flat hBN the :math:`D_{3h}` residual is 6.6% / 3.1% / 1.3% at 30x30 / 45x45 /

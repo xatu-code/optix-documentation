@@ -39,9 +39,11 @@ Blocks
 ======
 
 At every k-point the bands of the model are grouped into **blocks**: maximal runs of consecutive bands
-whose energy gaps are below ``cov_tol`` = 3 meV (:math:`1.1\times10^{-4}` Ha). Bands separated by more than
+whose energy gaps are below ``cov_tol`` = 30 meV (:math:`1.1\times10^{-3}` Ha). Bands separated by more than
 that form blocks of their own, so a non-degenerate band is a block of size one and is treated exactly as in
-a per-band calculation. The grouping is made at the central k-point and applied unchanged to the
+a per-band calculation. 30 meV (3 meV until 2026-10-12) because a Wannier fit splits band pairs that a glide or
+screw axis keeps degenerate on the zone boundary (GeS, SnTe) by up to about 20 meV; inside one block such a
+pair is handled covariantly instead of through a per-band derivative across the near-degeneracy. The grouping is made at the central k-point and applied unchanged to the
 finite-difference neighbours.
 
 Blocks are formed over all bands of the model. A block that has members both inside and outside
@@ -105,7 +107,7 @@ Split pairs inside a block: the lineshape correction
 ====================================================
 
 Grouping is exact for the derivative but not for the lineshape. Two bands that share a block but are split
-by :math:`0 < \Delta < 3` meV have transition energies that differ by :math:`\Delta`, and a per-band
+by :math:`0 < \Delta < 30` meV have transition energies that differ by :math:`\Delta`, and a per-band
 calculation would weigh each with its own :math:`\delta(\omega-\omega_{nm})`. Where the per-band formula is
 valid (bands split by more than its numerical resolution), it differs from the block formula by a commutator
 with the intra-block, off-diagonal Berry connection of the energy eigenbasis,
@@ -146,8 +148,53 @@ is split by :math:`10^{-10}`–:math:`10^{-6}` Ha, depending on the k-point, by 
 Thresholds from :math:`10^{-7}` to :math:`10^{-5}` Ha give identical results; :math:`10^{-8}` Ha already
 breaks the threefold symmetry by 18%. Moving a transition energy by less than 27 :math:`\mu\text{eV}` has no visible effect.
 
-The two tolerances
-==================
+Unresolved minima of the splitting
+==================================
+
+The lineshape correction divides by the splitting, and it behaves like a principal value: it converges
+only where the mesh resolves how the splitting varies. That fails where a pair's splitting has a minimum
+much narrower than a mesh step. The point on the floor of such a valley stands for a cell in which the
+splitting is far larger, so its point value overweights the cell by the ratio of the two. If the minimum
+runs along a line of mesh points, the overweighting adds up to a contribution that falls only as
+:math:`1/N` and never converges.
+
+That is what happens on the zone edge of GeS and SnTe (point group mm2, a glide plane): there the bands
+stick together in pairs, which the Wannier fit splits by 0.1-20 meV, and an even Monkhorst-Pack mesh
+contains the edge line. On GeS (bands 17-24, 120x120) the symmetry-forbidden :math:`\sigma^{xxz}` reached
+224 :math:`\mu\text{A nm/V}^2`, 448 at 60x60, from the top valence pair split by 0.5 meV; odd meshes,
+which have no edge line, did not show it. Field-split MoS\ :sub:`2` has the same structure, more weakly, on
+its :math:`\Gamma`-M lines.
+
+So a pair is also treated as degenerate (block formula, no lineshape correction) at a k-point where its
+splitting is below ``valley_ratio`` = 0.3 of its splitting at **both** neighbouring mesh points along some
+axis. The neighbours are those of the Monkhorst-Pack mesh, so this needs no extra eigensystems. The effect,
+measured:
+
+.. list-table::
+   :header-rows: 1
+   :widths: 40 30 30
+
+   * - test
+     - before
+     - after
+   * - GeS forbidden :math:`\max|\sigma^{xxz}|`, even 120x120 / 250x250
+     - 224 / 108
+     - 1.5 / 2.2
+   * - GeS share of :math:`m_y`-forbidden components, even / odd meshes
+     - 25% / 1.4-5.5%
+     - 0.7-0.8% / 0.9-1.3%
+   * - GeS allowed components, even 250x250 vs odd 251x251
+     - 73-404% apart
+     - 1-3%
+   * - MoS\ :sub:`2` at :math:`F = 0.2` eV/Angstrom, distance to the :math:`N\to\infty` limit at 90x90 ... 250x250
+     - 12.6% ... 4.5%
+     - 1.7% ... 1.1%
+
+The threshold is not critical: 0.5 gives the same picture, 0.1 leaves part of the GeS edge line in.
+Models without near-degenerate pairs (hBN) are unaffected.
+
+The tolerances
+==============
 
 .. list-table::
    :header-rows: 1
@@ -157,14 +204,19 @@ The two tolerances
      - value
      - sensitivity (measured on MoS\ :sub:`2`)
    * - ``cov_tol`` (block grouping)
-     - 3 meV
-     - results identical for 1, 3, 10 and 30 meV (to :math:`10^{-9}` in the NumPy reference
-       implementation); 0 (no grouping) is the per-band method and fails
+     - 30 meV
+     - MoS\ :sub:`2`: identical for 1, 3, 10 and 30 meV (to :math:`10^{-9}` in the NumPy reference
+       implementation); 0 (no grouping) is the per-band method and fails. GeS: 3 meV leaves its zone-edge
+       pairs split by 3-20 meV outside the blocks (allowed components 4-25% apart between even and odd meshes)
    * - ``cov_exact_tol`` (exact degeneracy)
      - 27 :math:`\mu\text{eV}`
      - identical for :math:`10^{-7}`–:math:`10^{-5}` Ha; :math:`10^{-8}` Ha gives an 18% symmetry residual
+   * - ``valley_ratio`` (unresolved minimum)
+     - 0.3
+     - GeS and field-split MoS\ :sub:`2`: 0.3 and 0.5 agree to a few per cent; 0.1 leaves part of the GeS
+       zone-edge artefact
 
-Neither is an input keyword; both are fixed in ``ome_sp.f90``.
+None is an input keyword; all are fixed in ``ome_sp.f90``.
 
 Cost and stored data
 ====================
@@ -188,9 +240,10 @@ What the log says
 
    Evaluating shift conductivity (sp), block-covariant generalised derivative...
    pairs degenerate to numerical precision inside blocks (no lineshape term):  N
+   pairs at an unresolved minimum of their splitting (no lineshape term):     M
 
-The second line appears when some pairs fell below ``cov_exact_tol``; it counts (k-point, pair)
-occurrences and is informative only. If a block straddles the ``Bandlist`` edge at some k-points:
+The second and third lines appear when some pairs fell below ``cov_exact_tol`` or met the valley rule; they
+count (k-point, pair) occurrences and are informative only. If a block straddles the ``Bandlist`` edge at some k-points:
 
 .. code-block:: text
 

@@ -98,17 +98,16 @@ Relation to ``rectification``
 
 ``Response = rectification`` is the general two-frequency response, Eq. (B1a) of [Taghizadeh2018]_, on the
 DC line with the causal broadening of every other branch: the whole :math:`\sigma(0;\omega,-\omega)`,
-injection current included. In the non-interacting limit, and above the gap, its symmetric real part equals
-the shift current on resonance; at bound excitons it differs, because the exciton-exciton term that the
-convention used here cancels survives with causal broadening (buckled hBN: 0.53 of the shift current). See
-:ref:`dc-limit`.
+injection current included. It differs from the excitonic shift current by the exciton-exciton term, which the
+convention used here cancels and causal broadening keeps: at bound excitons (buckled hBN: 0.53 of the shift current)
+and, with more than one valence or conduction band, already without interaction. See :ref:`dc-limit`.
 
 Non-interacting limit
 =====================
 
-With the electron–hole interaction turned off in Xatu, the excitonic shift current reduces to the
-single-particle one (after :math:`b\leftrightarrow c` symmetrisation).
-This is a useful check of a new setup.
+With the electron-hole interaction turned off in Xatu and one valence and one conduction band, the excitonic shift
+current reduces to the single-particle one (after :math:`b\leftrightarrow c` symmetrisation). With more bands it does
+not (:ref:`dc-term3`); the excitonic rectification does, and is the check of a new setup.
 
 References
 ==========

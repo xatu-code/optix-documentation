@@ -45,7 +45,7 @@ A run is driven by one plain-text input file, and every run follows the same pip
 .. code-block:: text
 
    input file ──► Wannier90 _tb.dat ──► k-mesh and bands ──► optical matrix elements ──► optical response
-                  (+ Xatu .eigval/.states)                   (single-particle, excitonic)  (σ(ω) written to .dat)
+                  (+ Xatu .eigval/.states or .h5)            (single-particle, excitonic)  (σ(ω) written to .dat)
 
 Computing the optical matrix elements is usually the expensive step. They are stored on disk, so you can
 compute them once and then reuse them for different frequency windows or broadenings (see

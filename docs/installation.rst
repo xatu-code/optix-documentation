@@ -69,6 +69,22 @@ Build
       ``-lmkl_rt -fopenmp -lpthread -lm -ldl``. If MKL is installed elsewhere, uncomment the ``MKLROOT``
       and ``LIBS`` lines in the MKL block of the ``Makefile`` and adjust the path.
 
+.. tab-set::
+
+   .. tab-item:: HDF5 (Xatu archives)
+
+      To read Xatu HDF5 exciton archives (``xatu -H``), build with the HDF5 Fortran library
+      (``sudo apt-get install libhdf5-dev`` on Ubuntu):
+
+      .. code-block:: bash
+
+         make clean
+         make HDF5=1
+
+      ``HDF5_INC`` sets the directory of ``hdf5.mod`` if it is not ``/usr/include``. Run ``make clean``
+      whenever you switch between builds with and without HDF5. Without it OptiX reads the ``.eigval`` and
+      ``.states`` text files only, and stops with a message if it is given an archive.
+
 The executable is ``bin/opticx``.
 
 Compiler flags
@@ -118,8 +134,8 @@ OptiX is parallelised with OpenMP over k-points and excitons. Set the number of 
 
    export OMP_NUM_THREADS=8
 
-Several routines put mesh-sized arrays on the stack. For medium or large meshes, raise the stack
-limits before running, or the program may crash with a segmentation fault:
+The large arrays live on the heap, so the default stack limits are enough. Versions before 2026-10-16
+needed higher limits for models with many orbitals or long frequency grids; raising them is still harmless:
 
 .. code-block:: bash
 

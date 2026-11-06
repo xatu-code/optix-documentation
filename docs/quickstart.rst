@@ -193,6 +193,11 @@ Step 2 — run OptiX
 Notes:
 
 * The two lines after ``true`` are the paths to the ``.eigval`` and ``.states`` files, in that order.
+* Alternatively, run Xatu with ``-c -H`` instead of ``-e -c``. It then writes a single HDF5 archive,
+  ``hBN_exciton.h5``, and the line after ``true`` is its path. This needs an OptiX built with
+  ``make HDF5=1`` (:doc:`installation`). The archive keeps full precision and records the Xatu filling and
+  mesh, so a mismatched ``Nfermi`` or mesh stops the run instead of giving a wrong result
+  (:ref:`kw-xatu`).
 * ``Exciton_cutoff`` is the number of exciton states (lowest in energy) that enter the response.
 * ``OME_ex = linear`` builds the exciton optical matrix elements from the Xatu envelopes.
 

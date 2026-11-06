@@ -131,7 +131,9 @@ it does not depend on ``Response``, the frequency window or the broadening. So:
 
 That second form skips both the single-particle and the excitonic matrix-element stages, and it also
 skips reading the exciton envelopes from the ``.states`` file — which for a large basis is the biggest
-remaining start-up cost, since that file is plain ASCII and can run to gigabytes.
+remaining start-up cost, since that file is plain ASCII and can run to gigabytes. A Xatu HDF5 archive
+(:ref:`kw-xatu`) holds the same envelopes in binary form, at full precision and several times smaller,
+which makes that read cheap in the first place.
 
 **Memory.** The peak is dominated by terms linear in ``Exciton_cutoff`` (the envelopes and their
 k-derivative, :math:`\texttt{norb\_ex} \times N`) plus :math:`8N^2` complex numbers for the

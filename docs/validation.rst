@@ -32,7 +32,7 @@ Test suite
    * - ``make check_gauge_covariance``
      - that eigenvector phases, and rotations inside degenerate blocks, do not move X_nm or any shift/SHG output
    * - ``make check_shift_covariant``
-     - the covariant single-particle methods (23 checks): shift vs exact Eq. 9 on hBN; SHG and rectification vs ``Sp_method = per_band`` on hBN; C3 on MoS\ :sub:`2`; invariance under rotations inside degenerate blocks
+     - the covariant single-particle methods (29 checks): shift vs exact Eq. 9 on hBN; SHG and rectification vs ``Sp_method = per_band`` on hBN; C3 on MoS\ :sub:`2`; invariance under rotations inside degenerate blocks; GeS shift on an even 80x80 mesh (zone-edge line) = odd 81x81, with no symmetry-forbidden spike
    * - ``make check_tb_hermiticity``
      - the tight-binding reader's Hermiticity check and repair: exact files untouched, lower-triangle storage completed, non-Hermitian H / r (and, where supported, non-orthonormal S and r with the R S term) warned about and equal to a hand-Hermitised twin
    * - ``make check_ex_rectification``
@@ -42,7 +42,19 @@ Test suite
    * - ``make check_bands``
      - the band structure along a k-path: eigenvalues equal an independent NumPy diagonalisation (hBN, buckled hBN, MoS\ :sub:`2`), the hexagonal default path (K at the zone corner, the K gap), the ``Kpath`` point counts, jumps and labels, ``Response = bands`` writing only the band file, a malformed ``Kpath`` line refused
    * - ``make check_bandlist_guard``
-     - the band-window report and the unusual-``Bandlist`` warning (missing frontier bands, gaps, repeats; silent on complete windows and on Xatu band lists); ``Exciton_cutoff`` omitted uses every exciton, a negative value stops
+     - the band-window report and the unusual-``Bandlist`` warning (missing frontier bands, gaps, repeats; silent on complete windows and on Xatu band lists); ``Exciton_cutoff`` omitted uses every exciton, a negative value stops; a ``Nfermi`` that does not match the Xatu band window (too high or too low) stops before computing and names the right value; a window without a conduction or a valence band stops, except for ``Response = bands``; ``Response = bands`` with Xatu input reads no exciton envelopes; the input file argument (missing, misspelled, longer than 100 or than 1000 characters)
+   * - ``make check_scissor``
+     - the scissor (:ref:`kw-scissor`): ``Scissor = 0`` is the identity; with ``r_unchanged`` the shift current moves rigidly by :math:`\Delta` (:math:`6\times10^{-15}`); non-interacting excitons with energies :math:`+\Delta` agree with the single-particle code in absorbance, shift, rectification and SHG, in both modes, as well as without a scissor; the Xatu archive's scissor record (match runs, mismatch stops); the cache's scissor record; ``per_band`` and unknown modes stop
+   * - ``make check_nonortho_phase``
+     - excitons on a non-orthonormal model: every band state carries Xatu's phase convention (the sum of :math:`S^{1/2}c` real, :math:`10^{-10}`; the previous rule fails), the ``.omesp`` records it, an old ``.omesp`` is refused by an excitonic run, the orthonormal path is unchanged
+   * - ``make check_band_phase``
+     - the band states of the exciton basis (:ref:`kw-band-phase`), on hBN with interacting model excitons generated with either phase rule: from an archive that stores Xatu's states, the plain-sum and weighted-sum excitons give the same excitonic SHG (:math:`10^{-8}`), orthonormal and non-orthonormal (Lowdin coefficients); without them ``Band_phase`` gives the same, and the wrong rule does not (the defect this fixes); another model's states and the atomic Bloch gauge stop; the ``.omesp`` and the excitonic cache record the states, and reading one made for other states stops
+   * - ``make check_nonortho_xnm``
+     - excitonic :math:`X_{nm}` on a non-orthonormal model with an intercell overlap: hBN and a rewrite of it in a non-orthogonal basis (same crystal), each with a complete set of non-interacting excitons, give the same single-particle SHG (:math:`10^{-9}`) and the same excitonic SHG, equal to the single-particle one to the mesh error (:math:`2\times10^{-3}` at 30x30)
+   * - ``make check_hex_stencil``
+     - :math:`X_{nm}` on a hexagonal mesh: with non-interacting hBN excitons (maximally unresolved envelopes, a set closed under the threefold rotation) the off-diagonal :math:`X_{nm}` of every pair of exciton multiplets is rotation invariant (residual :math:`2\times10^{-3}`; the two-axis stencil gives 0.45); the cache records the stencil and a cache made with the old one stops the run; a non-hexagonal lattice keeps the axis stencil
+   * - ``make check_xatu_h5``
+     - Xatu HDF5 archive input (build with ``make HDF5=1``): an archive converted from the text files gives the same spectra (to :math:`10^{-12}`) and the same ``.omesp`` byte for byte; every guard (wrong ``Nfermi``, Xatu submesh, shifted mesh, basis order, no states, ``Exciton_cutoff`` too large, mismatched ``Bandlist``, not an archive, missing file) stops before computing; with ``XATU=path/to/xatu``, a real Xatu run written both ways
    * - ``make check_realtime_sign``
      - **absolute sign and normalisation**: SHG, rectification and the shift current on hBN against a real-time propagation of the density matrix (:ref:`second-order-normalisation`)
 

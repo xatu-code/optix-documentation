@@ -25,10 +25,10 @@ excitons are bound:
        :math:`\hbar\omega_2=2i\eta`
 
 The shift current is a special route with its own equations. The rectification is the general
-two-frequency response evaluated on the DC line, so it is continuous with the 2D map. In the
-independent-particle limit, and above the gap, the symmetric real part of the rectification equals the
-shift current on resonance (with off-resonant corrections proportional to :math:`\eta`). At bound excitons it
-does not (:ref:`dc-term3`).
+two-frequency response evaluated on the DC line, so it is continuous with the 2D map. For single particles, the
+symmetric real part of the rectification equals the shift current on resonance (with off-resonant corrections
+proportional to :math:`\eta`). For excitons the two differ by the exciton-exciton term: at bound excitons and, with
+more than one valence or conduction band, already without interaction (:ref:`dc-term3`).
 
 Two conventions for one line
 ============================
@@ -81,6 +81,12 @@ oscillates at :math:`(E_n-E_m)/\hbar`. How :math:`\omega_\Sigma` is broadened de
   identically. Only terms 1 and 2 remain.
 * **Causal** (:math:`\hbar\omega_\Sigma=2i\eta`): term 3 survives. For populations and degenerate pairs the
   first factor is :math:`1/(2i\eta)=-i\tau/\hbar`, a lifetime :math:`\tau=\hbar/2\eta`.
+
+This term is the distinction between the two responses. Without interaction, its symmetric real part vanishes only
+for one valence and one conduction band. With more bands, excitons :math:`(v,c,k)` and :math:`(v',c,k)`, or
+:math:`(v,c,k)` and :math:`(v,c',k)`, are coupled by :math:`v_{vv'}` or :math:`v_{cc'}`: three-band virtual
+transitions that belong to the independent-particle shift current. ``Response = shift`` therefore does not reduce to
+the single-particle shift current in that case, while the rectification does.
 
 What survives, measured on buckled hBN (75x75, full Xatu basis, projection on the shift current at
 :math:`\eta=0.1` eV):
